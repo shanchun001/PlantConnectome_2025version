@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block dependencies %}
+{{ super() }}
+
+<!-- Including JavaScript code for the help page -->
+<script src = "{{ url_for('static', filename = 'js/help_page.js') }} " defer> </script>
+<link rel = "stylesheet" type = "text/css" href = "{{ url_for('static', filename = 'css/help_page.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class = "grid-container fluid">
+  <br>
+  <h2> Help / FAQs </h2>
+  <br>
+  <p> General Questions & Answers </p>
+  <hr>
+
+  <style>
+    .accordion-title{
+      font-size:1rem;
+    }
+  </style>
+
+  <!-- Questions as accordions -->
+  <ul class = "accordion" data-accordion data-allow-all-closed = 'true'>
+    <li class = "accordion-item" data-accordion-item>
+      <a class = "accordion-title"> How was the database constructed?  </a>
+      <div class = "accordion-content" data-tab-content>
+        <p>
+          We used GPT to evaluate research abstracts and identify pairs of entities (e.g., genes, proteins, molecules, 
+          compartments, complexes) in addition to their unique interaction type (e.g., enhances, binds, affects, represses).
+          <br> <br>
+          For instance, after examining the abstract
+          <blockquote>
+            "In plants, regulation of cellulose synthesis is fundamental for morphogenesis and plant growth. 
+            Cellulose is synthesized at the plasma membrane, and the orientation of synthesis is guided by cortical 
+            microtubules; however, the guiding mechanism is currently unknown. We show that the conditional root elongation 
+            pom2 mutants are impaired in cell elongation, fertility, and microtubule-related functions. Map-based cloning of 
+            the POM-POM2 locus revealed that it is allelic to CELLULOSE SYNTHASE INTERACTING1 (CSI1). Fluorescently tagged 
+            POM2/CSI1s associated with both plasma membrane-located cellulose synthases (CESAs) and post-Golgi CESA-containing 
+            compartments. Interestingly, while CESA insertions coincided with cortical microtubules in the pom2/csi1 mutants, 
+            the microtubule-defined movement of the CESAs was significantly reduced in the mutant. We propose that POM2/CSI1 provides 
+            a scaffold between the CESAs and cortical microtubules that guide cellulose synthesis."
+          </blockquote>
+          GPT returned the following statements:
+          <ol>
+            <li> Cellulose [molecule]: !synthesized at! Plasma Membrane [cellular component] </li>
+            <li> Cortical Microtubules [organelle]: !guide! Cellulose Synthesis [process] </li>
+            <li> POM2/CSI1 [gene]: !associates with! CESAs [gene] </li>
+            <li> POM2/CSI1 [gene]: !provides scaffold between! CESAs and Cortical Microtubules [biological interaction] </li>
+          </ol>
+        </p>
+      </div>
+    </li>
+    <li class = "accordion-item" data-accordion-item>
+      <a class = "accordion-title"> How can I search the database?  </a>
+      <div class = "accordion-content" data-tab-content>
+        <p>
+          You can choose to search for <strong>terms</strong> mentioned in the abstracts/full-texts (for instance, "proline", "cold", "root hair", etc.), <strong>author names</strong>, or <strong>PubMed IDs</strong>.
+          <br><br>
+          Under <strong>term search</strong>, you can filter the network by node types first by clicking on the checkbox. 
+          <br>
+          There are also <strong>6 term search options</strong> (word, exact, alias, substring, non-alphanumeric and paired-entity). The detailed search instructions are found on the home page.
+        </p>
+      </div>
+    </li>
+    <li class = "accordion-item" data-accordion-item>
+      <a class = "accordion-title"> Which papers were analyzed?  </a>
+      <div class = "accordion-content" data-tab-content>
+        <p>
+          Papers involve full-texts were obtained from NCBI PubMed, while abstracts were obtained from Elsevier. Search terms involve the model plant <i>Arabidopsis thaliana</i> along with its gene aliases.
+        </p>
+        <img src = "{{ url_for('static', filename = 'papers.svg') }}" style = "max-width: 70%;" alt = "My Image">
+      </div>
+    </li>
+    <li class = "accordion-item" data-accordion-item>
+      <a class = "accordion-title"> How do I use the KnowledgeNetwork viewer?  </a>
+
+      <style>
+        .image-container {
+          display: flex;
+          flex-direction: column;
+          text-align: center;
+          margin: 1rem;
+        }
+        
+        .image-container img {
+          display: block;
+          align-items: center;
+          width: 50%;
+        }
+        
+        .image-container p {
+          margin-top: 10px; 
+        }
+      </style>
+      
+      <div class="accordion-content" data-tab-content>
+        <div class="image-container">
+          <div class="content-wrapper">
+            <div>
+              <p>
+                Our KnowledgeNetwork viewer displays a plethora of relationships found between your search query and GPT-detected entities. Should you want to narrow your search options, click on the <strong>"Node Filter Layout Options"</strong> or <strong>"Edge Filter Layout Options"</strong> button:
+              </p>
+              <img src="../static/Filters.png" alt="Filters">
+            </div>
+            <br>
+            <div>
+              <p>
+                Then, select your nodes/edges of interest and click <strong>"Recalculate Layout"</strong>:
+              </p>
+              <img src="../static/recalculate_layout.png" alt="Recalculatelayout">
+            </div>
+            <br>
+            <div>
+              <p>
+                To learn more about a specific node or edge, <strong>click</strong> on it:
+              </p>
+              <img src="../static/edgeclick.png" alt="Edge_click">
+            </div>
+            <br>
+            <br>
+            <div>
+              <p>
+                Users also have the option of personally modifying networks. For example, among the list of possible actions when clicking a node is <strong>removing it</strong> or <strong>isolate neighborhood</strong>. Clicking once on the background will restore node opacity.
+              </p>
+              <img src="../static/isolateneighborhood.png" alt="isolateneighborhood">
+            </div>
+          </div>
+        </div>
+      </div>    
+    </li>
+    <li class = "accordion-item" data-accordion-item>
+      <a class = "accordion-title"> How can I access the research abstracts from which relationships were identified? </a>
+      <div class = "accordion-content" data-tab-content>
+        <p>
+          Below the KnowledgeNetwork viewer is a table showcasing the network's nodes and edges. Clicking on the Pubmed ID will display both the 
+          research abstract and entities identified from it:
+        </p>
+        <img class = 'align-center' src="{{ url_for('static', filename='pmidlink.png') }}" style="max-width: 50%;" alt="My Image"> 
+      </div>
+    </li>
+    <li class = "accordion-item" data-accordion-item>
+      <a class="accordion-title">How accurate is GPT in extracting information from the literature?</a>
+      <div class="accordion-content" data-tab-content>
+        <style>
+          /* Main container for the text and images */
+          .image-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* Align images to the left */
+            justify-content: center; /* Ensures the content inside is centered vertically */
+            width: 100%; /* Full-width container */
+            margin: 1rem 0;
+          }
+      
+          /* Image styling */
+          .image-container img {
+            max-width: 100%; /* Ensures the image doesn’t exceed its container */
+            width: 40%; /* Set the image width, adjust as needed */
+            height: auto; /* Maintain the aspect ratio */
+          }
+      
+          /* Centered text container */
+          .text-container {
+            text-align: center;
+            width: 80%; /* Adjust the width for better layout */
+            margin: 0 auto;
+            margin-bottom: 20px;
+          }
+      
+          /* Paragraph styling */
+          .text-container p {
+            text-align: justify; /* Justifies the paragraph text */
+            margin: 1rem 0;
+          }
+        </style>
+      
+        <div class="image-container">
+          <!-- Main Description Text -->
+          <div class="text-container">
+            <p>
+              As with any AI model, GPT is not 100% accurate, generating results that may be erroneous or incomplete. Accordingly, relationships of interest warrant confirmation with the appropriate abstracts / full-texts. To estimate the accuracy rate, we randomly sampled and manually inspected 300 edges, 100 GRNs and 100 PPIs. The results of which are summarized by the following 2 charts:
+            </p>
+          </div>
+      
+          <!-- First Image and Caption -->
+          <div class="image-container">
+            <img src="../static/accuracy1.svg" alt="first_chart">
+            <p class="text-container">More than 90% accuracy in entity type classification and above 80% accuracy of edges.</p>
+          </div>
+      
+          <!-- Second Image and Caption -->
+          <div class="image-container">
+            <img src="../static/accuracy2.svg" alt="second_chart">
+            <p class="text-container">More than 90% accuracy of GRNs and PPIs.</p>
+          </div>
+        </div>
+      </div>        
+    </li>
+  </ul>
+</div>
+{% endblock %}

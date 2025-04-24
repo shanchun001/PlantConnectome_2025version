@@ -1,0 +1,385 @@
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+}
+
+h1 {
+    margin: 0;
+}
+
+/* Add styles for the search results section */
+section {
+    margin: 30px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    /* box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1); */
+    background-color: white;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+/* Add styles for the paper popup */
+.paper-popup {
+    background-color: black;
+    color: white;
+    width: 100%;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Add styles for the red text */
+.red-text {
+    color: red;
+}
+
+/* Add styles for the page footer */
+footer {
+    background-color: #333;
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+}
+
+/* "width: 90%; height: 1200px; overflow: hidden; position: relative; background-color: black;" */
+
+/* Add styles for the search form */
+
+
+/* The popup form - hidden by default */
+.form-popup {
+    display: none;
+    position: absolute;
+    top: 30px;
+    left: 0px;
+    width: 100%;
+    border: 3px solid #f1f1f1;
+    z-index: 999;
+    background-color: #e6e6e6;
+    opacity: 0.9;
+}
+
+/* Button used to open the contact form */
+#open-button {
+    position: absolute;
+    top: 0; 
+    left: 0;
+}
+
+    
+/* Add styles to the form container */
+.form-container {
+    max-width: 100%;
+    padding: 0px;
+}
+.expanded.button-group {
+    margin-bottom: 0px; /* Reduce space below the button group */
+}
+.form-container h5 {
+    margin-top: 0px; /* Reduce the top margin */
+    padding-top: 0; /* Remove extra padding if any */
+}
+    /* Full-width input fields */
+.form-container input[type=number] {
+    width: 30%;
+    padding: 7px 7px;
+    border: none;
+    background: black;
+}
+
+    /* When the inputs get focus, do something */
+.form-container input[type=text]:focus, .form-container input[type=password]:focus {
+    outline: none;
+}
+
+    /* Set a style for the submit/login button */
+.form-container .btn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 5px 5px;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+    margin-bottom:10px;
+    opacity: 0.8;
+}
+
+/* Add a red background color to the cancel button */
+.cancel-button {
+    background-color: #ff5b49;
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    flex: 1;
+    width: 10%;
+}
+
+/* Add some hover effects to buttons */
+.form-container .btn:hover, .open-button:hover , .cancel-button:hover,.layoutButton:hover, #graphml:hover{
+    opacity: 1;
+}
+    
+.option-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    flex: 1;
+    width: 10%;
+}
+
+    
+.option-button:hover {
+    background-color: #3e8e41;
+    }
+    
+.cancel-button:hover {
+    background-color: #8c180f;
+}
+    
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.button-container .option-button {
+    width: 50%;
+}
+
+.button-container .cancel-button {
+    width: 50%;
+}
+.help-button {
+    background-color: green;
+    color: white;
+    padding: 10px 20px;
+    font-size: 12px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+}
+
+.pubmed-hyperlink {
+    color: black; 
+    text-decoration: none; 
+    outline: none;
+    cursor: pointer;
+}
+.pubmed-hyperlink {
+    text-decoration: underline !important;
+}
+.pubmed-hyperlink:hover {
+    color: red; 
+}
+
+.pubmed-link {
+    color: blue;
+    cursor: pointer;
+}
+
+.tooltippubmed-link:hover {
+    color: red;
+}
+
+.tooltippubmed-hyperlink {
+    color: black; 
+    text-decoration: none; 
+    outline: none;
+    cursor: pointer;
+}
+.tooltippubmed-hyperlink {
+    text-decoration: underline !important;
+}
+.tooltippubmed-hyperlink:hover {
+    color: red; 
+}
+
+.tooltippubmed-link {
+    color: blue;
+    cursor: pointer;
+}
+
+.tooltippubmed-link:hover {
+    color: red;
+}
+
+.side-tooltip {
+    padding: 10px 14px; /* Increase padding for more spacious feel */
+    display: none;
+    position: absolute;
+    color: #222; /* Darker text for better readability */
+    background-color: #ffffff; /* Pure white background for better contrast */
+    border: 1px solid #ccc; /* Softer border color */
+    border-radius: 10px; /* Slightly more rounded corners */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Slightly more prominent shadow for depth */
+    bottom: 0;
+    right: 0;
+    width: 250px; /* Slightly wider for better content spacing */
+    height: 100%; /* Limit height to prevent overflowing off the screen */
+    z-index: 999;
+    overflow-y: auto; /* Allow scrolling if content exceeds height */
+    word-wrap: break-word;
+    font-size: 14px; /* Slightly larger font for better readability */
+    line-height: 1.6; /* Increase line height for more comfortable reading */
+    opacity: 1;
+}
+
+.side-tooltip .title {
+    font-weight: bold;
+    font-size: 14px; /* Larger font size for clear emphasis */
+    color: #000; /* Black title for strong contrast */
+    margin-bottom: 10px; /* More space between title and content */
+    text-align: left; /* Align title to the left for a clean structure */
+}
+
+.side-tooltip .content {
+    font-size: 14px; /* Standardized font size for readability */
+    line-height: 1.8; /* Increased line spacing for clarity */
+    color: #444; /* Darker gray for better readability of content */
+}
+
+.side-tooltip .content p {
+    margin-bottom: 10px; /* Add space between paragraphs */
+    color: #3a3737; /* Medium gray for content text */
+}
+
+.side-tooltip strong {
+    color: #222; /* Slightly darker color for emphasis */
+    font-size: 14px; /* Larger font size for clear emphasis */
+}
+
+.side-tooltip .highlight {
+    background-color: #f0f0f0; /* Light background for highlighting important information */
+    padding: 5px;
+    border-radius: 4px;
+    display: block;
+}
+
+
+.paper-overlay {
+    display: none;
+    background-color: rgba(0, 0, 0, 0.8);
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 99999;
+}
+
+.modal-content {
+    background: white;
+    padding: 1em;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    box-sizing: border-box;
+    width: 71%;
+    height: 80%;
+    border-radius: 5px;
+    overflow: scroll;
+}
+
+.close-button {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    color: white;
+    font-weight: 200;
+    transition: color 0.5s;
+}
+
+.close-button:hover {
+    color: gray;
+}
+
+
+.image-heading {
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#plantC-title {
+    display: inline-block;
+    max-width: 55%;
+    vertical-align: middle;
+}
+
+#loading-container {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 10px;
+}
+
+#loading-text {
+    font-size: 8px; /* Reduced size */
+    margin-left: 8px;
+    color: grey; /* Changed to grey */
+    display: inline-block; 
+    animation: dance 1s infinite; /* Animation applied */
+
+}
+
+#loading-icon {
+    width: 20px;
+    height: 20px;
+    margin-left: 20px;
+    display: none; /* Initially hidden */
+}
+
+@keyframes dance {
+    0% { transform: translateY(0); }
+    20% { transform: translateY(-5px); }
+    40% { transform: translateY(5px); }
+    60% { transform: translateY(-5px); }
+    80% { transform: translateY(5px); }
+    100% { transform: translateY(0); }
+}
+
+#loading-icon-small {
+    width: 25px;
+    height: 25px;
+    display: none; /* Initially hidden */
+}
+
+#loading-icon,
+#loading-icon-small,
+#loading-text {
+    display: none; /* Ensures they start hidden */
+}
+
+.checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);  /* Create two equal-width columns */
+    grid-gap: 10px;  /* Add some space between the columns */
+    max-height: 225px;  /* Optional: Limit the height if needed */
+    overflow-y: auto;   /* Optional: Add scrolling if the height exceeds the limit */
+    padding: 10px;
+  }

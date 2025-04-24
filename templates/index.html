@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block dependencies %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+  <script src="{{ url_for('static', filename='js/index.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/count_animation.js') }}" defer></script>
+  <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js" defer></script>
+
+  {# ---- Layout fixes that must load early ---- #}
+  <style>
+    /* Ensure nothing inside the hero gets clipped */
+    .callout.large { overflow: visible !important; }
+
+    /* Two-column hero */
+    .hero-grid       { max-width: 1200px; margin: 0 auto; }
+
+    /* Cytoscape preview */
+    #cy-wrapper      { position: relative; width: 100%; height: 400px; }
+    #cy              { position: absolute; inset: 0; }
+
+    /* Mobile: shrink preview a little so text stays visible */
+    @media (max-width: 40em) {
+      #cy-wrapper { height: 320px; }
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="callout large" style="padding-top:5px;">
+  <div class="grid-container">
+
+    {# ---------- NEW FULL-WIDTH CENTERED BAR ---------- #}
+    <div class="text-center" style="margin-bottom:0.3rem;">
+      <h1 class="image-heading" style="margin:10px 0 5px 0;">
+        <img src="../static/plantC_title.png"
+             alt="PlantConnectome" id="plantC-title">
+      </h1>
+      <p style="margin:2px">
+        by the <a href="https://publish.obsidian.md/mutwillab/Homepage/News"
+                  target="_blank"
+                  style="color:#2980b9;text-decoration:none;">Mutwil Lab</a>
+      </p>
+    </div>
+
+    {# ---------- HERO GRID (unchanged) ---------- #}
+    <div class="grid-x grid-margin-x align-middle hero-grid">
+      <!-- Intro column -->
+      <div class="cell small-12 medium-6">
+        <p class="lead">
+          The product of processing <strong class="count">71136</strong> publications with GPT's assistance, PlantConnectome is a powerful resource providing insights into <strong class="count">4721399</strong> relationships involving genes, molecules, compartments, stresses, organs, and other plant entities. Please click on nodes and edges to view supporting PubMed IDs and verify whether relationships are reported in the current study or referenced from prior work.
+        </p>
+      </div>
+
+      <!-- Preview column -->
+      <div class="cell small-12 medium-6" style="padding:0">
+        <div id="cy-wrapper"><div id="cy"></div></div>
+        <p class="figure-legend" style="font-size:0.9rem;color:#7f8c8d;margin:4px 0 0;">
+          An example of PSAD1-1 knowledge graph
+        </p>
+      </div>
+    </div>
+
+    {# ---------- SEARCH SECTION ---------- #}
+    <div class="grid-x grid-margin-x" style="margin-top:0.5rem;">
+      <!-- Search forms -->
+      <div class="cell medium-6 small-order-2 medium-order-1">
+        <h3>
+          Search by…
+          <img id="loading-icon-small" src="../static/loading-green-loading.gif"
+               alt="Loading…" style="width:25px;height:25px;display:none;">
+          <span id="loading-text" style="font-size:12pt;color:grey;display:none;">loading…</span>
+        </h3>
+
+        <!-- Gene / term -->
+        <form id="gene-form"
+              action="{{ url_for('form', form_type='gene_id', search_type='normal') }}"
+              method="POST" onsubmit="return validateForm('gene_id');">
+          <label style="font-size:12pt;">
+            …gene, molecule, compartment, stress, cell type, organ, or other related terms.
+            <input type="text" id="gene_id" name="gene_id"
+                   placeholder="e.g., CESA (hit ‘Enter’ to search)">
+            <div class="button-group">
+              <input type="submit" class="button"
+                     formaction="{{ url_for('form', form_type='gene_id', search_type='normal') }}"
+                     value="Gene / Word">
+              <input type="submit" class="button"
+                     formaction="{{ url_for('form', form_type='gene_id', search_type='substring') }}"
+                     value="Substring">
+            </div>
+          </label>
+        </form>
+
+        <!-- Author -->
+        <form id="name-form" style="margin-top:20px;"
+              action="{{ url_for('form', form_type='author',
+                                search_type='author_search.preview_author_search') }}"
+              method="POST" onsubmit="return validateForm('author');">
+          <label style="font-size:12pt;">
+            …author name (last name & initials).
+            <input type="text" id="author" name="author" placeholder="e.g., Mutwil M">
+            <input type="submit" class="button" value="Search">
+          </label>
+        </form>
+
+        <!-- PubMed ID -->
+        <form id="title-form" style="margin-top:20px;"
+              action="{{ url_for('form', form_type='title',
+                                search_type='title_searches.title_search') }}"
+              method="POST" onsubmit="return validateForm('title');">
+          <label style="font-size:12pt;">
+            …by PubMed ID(s).
+            <input type="text" id="title" name="title" placeholder="e.g., 38050352">
+            <input type="submit" class="button" value="Search">
+          </label>
+        </form>
+      </div>
+
+      <!-- Help panel -->
+      <div class="cell medium-6 small-order-1 medium-order-2">
+        <h3>Search instructions <small>(click a button to learn more)</small></h3>
+        <div class="button-group">
+          <div class="button hollow" onclick="updateHelpText('Gene / Word')">Gene / Word</div>
+          <div class="button hollow" onclick="updateHelpText('Substring')">Substring</div>
+        </div>
+        <div id="help-text" style="margin-top:20px;">
+          <p>Select a search type above to see detailed instructions.</p>
+        </div>
+      </div>
+    </div> <!-- /grid-x -->
+  </div>   <!-- /grid-container -->
+</div>     <!-- /callout -->
+
+{# ---------- PAGE-LEVEL SCRIPTS ---------- #}
+<script>
+  function validateForm(inputId) {
+    const el = document.getElementById(inputId);
+    if (!el.value.trim()) { alert('Please enter a value to search.'); el.focus(); return false; }
+    return true;
+  }
+  function updateHelpText(text) {
+    document.getElementById('help-text').innerHTML = `<p>${text}</p>`;
+  }
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+  
+    // Load preview data passed from Flask
+    const preview = {{ preview | tojson }};
+    const elements = preview.nodes.concat(preview.edges);
+  
+    // Custom style generator
+    function generateStyles() {
+      const nodeStyles = {
+        shapes: {
+          'GENE IDENTIFIER': 'ellipse',
+          'GENE/PROTEIN': 'ellipse',
+          'PHENOTYPE': 'rectangle',
+          'CELL/ORGAN/ORGANISM': 'hexagon',
+          'CHEMICAL': 'diamond',
+          'TREATMENT': 'pentagon',
+          'NAN': 'star',
+          'METHOD': 'triangle',
+          'GENOMIC/TRANSCRIPTOMIC FEATURE': 'round-rectangle',
+          'BIOLOGICAL PROCESS': 'diamond',
+        },
+        colors: {
+          'GENE IDENTIFIER': '#FFD700',
+          'GENE/PROTEIN': '#89CFF0',
+          'PHENOTYPE': '#90EE90',
+          'CELL/ORGAN/ORGANISM': '#FFB6C1',
+          'CHEMICAL': '#98FB98',
+          'TREATMENT': '#E0FFFF',
+          'NAN': '#FFA07A',
+          'METHOD': '#D2B48C',
+          'GENOMIC/TRANSCRIPTOMIC FEATURE': '#AFEEEE',
+          'BIOLOGICAL PROCESS': '#D8BFD8',
+        },
+        defaultShape: 'star',
+        defaultColor: '#FFA07A',
+      };
+  
+      const edgeStyles = {
+        colors: {
+          'ACTIVATION/INDUCTION/PROMOTION/CAUSATION/RESULT': '#32CD32',
+          'REPRESSION/INHIBITION/DECREASE/NEGATIVE REGULATION': '#DC143C',
+          'REGULATION/CONTROL': '#4682B4',
+          'EXPRESSION/DETECTION/IDENTIFICATION': '#FF8C00',
+          'ASSOCIATION/CORRELATION/RELATION/INTERACTION/BINDING': '#8A2BE2',
+          'LOCALIZATION/CONTAINMENT/COMPOSITION': '#3CB371',
+          'REQUIREMENT/ESSENTIALITY/ACTIVITY/FUNCTION/PARTICIPATION': '#B22222',
+          'ENCODING': '#4682B4',
+          'SYNTHESIS/FORMATION': '#FF8C00',
+          'OTHERS': '#C0C0C0',
+        },
+        arrows: {
+          'ACTIVATION/INDUCTION/PROMOTION/CAUSATION/RESULT': 'triangle',
+          'REPRESSION/INHIBITION/DECREASE/NEGATIVE REGULATION': 'tee',
+          'REGULATION/CONTROL': 'tee',
+          'EXPRESSION/DETECTION/IDENTIFICATION': 'circle',
+          'ASSOCIATION/CORRELATION/RELATION/INTERACTION/BINDING': 'circle',
+          'LOCALIZATION/CONTAINMENT/COMPOSITION': 'circle',
+          'REQUIREMENT/ESSENTIALITY/ACTIVITY/FUNCTION/PARTICIPATION': 'diamond',
+          'ENCODING': 'circle',
+          'SYNTHESIS/FORMATION': 'triangle',
+          'OTHERS': 'triangle',
+        },
+        defaultColor: '#C0C0C0',
+        defaultArrow: 'triangle',
+      };
+  
+      return [
+        // Node style
+        {
+          selector: 'node',
+          style: {
+            'label':  (ele) => ele.data('originalId'),
+            'width': '50px',
+            'height': '50px',
+            'color': '#000000',
+            'font-size': '14px',
+            'min-zoomed-font-size': 9,
+            'text-halign': 'center',
+            'text-valign': 'center',
+            'text-wrap': 'wrap',
+            'text-max-width': 30,
+            'shape': ele => nodeStyles.shapes[ele.data('category')] || ele.data('shape') || nodeStyles.defaultShape,
+            'background-color': ele => nodeStyles.colors[ele.data('category')] || ele.data('colour') || nodeStyles.defaultColor,
+          }
+        },
+        // Edge style
+        {
+          selector: 'edge',
+          style: {
+            'width': 2,
+            'opacity': 0.85,
+            'line-color': ele => edgeStyles.colors[ele.data('category')] || ele.data('colour') || edgeStyles.defaultColor,
+            'target-arrow-color': ele => edgeStyles.colors[ele.data('category')] || ele.data('colour') || edgeStyles.defaultColor,
+            'target-arrow-shape': ele => edgeStyles.arrows[ele.data('category')] || edgeStyles.defaultArrow,
+            'curve-style': 'bezier',
+            'min-zoomed-font-size': 9,
+            'label':  (ele) => ele.data('interaction'),
+            'font-size': '12px',
+            'text-wrap': 'wrap',
+            'text-max-width': 50,
+            'text-rotation': 'autorotate',
+            'text-margin-x': '9px',
+            'text-margin-y': '-9px',
+          }
+        }
+      ];
+    }
+  
+    // Init Cytoscape
+    const cy = cytoscape({
+      container: document.getElementById('cy'),
+      autoungrabify: false,
+      zoomingEnabled: true,
+      wheelSensitivity: 0.2,
+      textureOnViewport: false,
+      elements: elements,
+      motionBlur: false,
+
+      motionBlurOpacity: 0.2,
+      pixelRatio: '1',
+      style: generateStyles(),
+      layout: {
+        name: 'cose',
+        animate: true,
+        padding: 10,
+        nodeRepulsion: 1000000,  // 1 million = stronger push away
+        idealEdgeLength: 75,        // 👈 optional, edge length
+        animationDuration: 3000,
+      }    });
+      function styleCentralNodes(queryTerms) {
+        cy.startBatch();
+        cy.nodes().forEach((node) => {
+          const originalId = node.data('originalId');  // this is what you're searching for
+          if (queryTerms.includes(originalId)) {
+            node.style({
+              'width': '80px',
+              'height': '80px',
+              'background-color': '#ffd700',
+              'color': '#8B0000',
+              'font-size': '22px',
+              'text-halign': 'center',
+              'text-valign': 'center',
+              'text-wrap': 'wrap',
+              'text-max-width': 60,
+              'z-index': 9999
+            });
+          }
+        });
+        cy.endBatch();
+      }  
+    styleCentralNodes(['(PSAD-1, PSAD1, AT4G02770)-1']);  
+    const refresh = () => { cy.resize(); cy.fit(); };
+    setTimeout(refresh, 100);
+    window.addEventListener('resize', refresh);
+    
+  });
+  </script>
+{% endblock %}

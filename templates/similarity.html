@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block dependencies %}
+{{ super() }}
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"> </script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"> </script>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename = 'css/additional_styles.css') }}">
+
+{% endblock %}
+
+{% block content %}
+<script>
+    function redirect(id) {
+        const form = document.getElementById("gene-form");
+        const input = document.getElementById("gene_id");
+        input.value = id;
+        form.submit();
+    }
+
+    function showPaperPopup(pubmedID, source) {
+            // Create the PubMed API URL for the paper
+            var pubmedURL = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id=" + pubmedID + "&rettype=abstract&retmode=text";
+            // Use jQuery to load the paper data from the PubMed API
+            $.get(pubmedURL, function (data) {
+                // Create the HTML for the paper popup
+                var sourceWords = source.split(/[,\s&+/\\']+/);
+                // var targetWords = target.split(/[,\s&+/\\']+/);
+                var underlinedData = data;
+                for (var i = 0; i < sourceWords.length; i++) {
+                    var sourceRegex = new RegExp("\\b" + sourceWords[i].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", "gi");
+                    underlinedData = underlinedData.replace(sourceRegex, "<u><span class='red-text'>$&</span></u>");
+                }
+                // for (var j = 0; j < targetWords.length; j++) {
+                //     var targetRegex = new RegExp("\\b" + targetWords[j].replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&') + "\\b", "gi");
+                //     underlinedData = underlinedData.replace(targetRegex, "<u><span class='red-text'>$&</span></u>");
+                // }
+                var popupHTML = "<div class='paper-popup'><h2>" + source + "</h2><pre>" + underlinedData + "</pre> <a href='https://pubmed.ncbi.nlm.nih.gov/" + pubmedID + "'target='_blank' class='pubmed-hyperlink' style='text-decoration: underline;'>Click here</a> to view the publication.</div>";
+
+                // Display the popup using the jQuery UI dialog function
+                var $popup = $(popupHTML).dialog({
+                    width: "90%",
+                    maxWidth: "none",
+                    minHeight: "none",
+                    modal: true,
+                    close: function () {
+                        $popup.dialog("destroy").remove();
+                        currentPopup = null; // Reset the currentPopup variable
+                    },
+                });
+
+                // Set the currentPopup variable to the new popup
+                currentPopup = $popup;
+
+                // Close the popup when clicking outside the box
+                $(document).on("click", function (event) {
+                    if (currentPopup !== null && !$popup.is(event.target) && $popup.has(event.target).length === 0) {
+                        currentPopup.dialog("destroy").remove();
+                        currentPopup = null; // Reset the currentPopup variable
+                    }
+                });
+            });
+        }
+</script>
+<div class='grid-container align-center' style="padding-left: 2px; padding-right: 2px;">
+    <form action="{{ url_for('form', form_type = 'gene_id', search_type = 'normal') }}" method='POST' id='gene-form'>
+        <input type="text" aria-describedby="searchfield1" id="gene_id" name='gene_id' style="display: none;">
+    </form>
+    <h2> {{number_nodes}} entity(s) with {{search_term}} as their {{type}} <small> ({{ number_papers }} paper(s) in our database) </small></h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Source</th>
+                <th style="width: 30%;">Pubmed ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in results %}
+            <tr>
+                <td style="vertical-align: top;">
+                    <a href="javascript:void(0)" onclick="redirect( '{{ item[0] }}' )">{{ item[0] }}</a>
+                    <!-- {{ item[0] }} -->
+                </td>
+                <td style="width: 30%;">
+                    {% for pubmed_id in item[1] %}
+                    <a href="javascript:void(0)" onclick="showPaperPopup('{{ pubmed_id }}', '{{ item[0] }}')">{{ pubmed_id }}</a>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

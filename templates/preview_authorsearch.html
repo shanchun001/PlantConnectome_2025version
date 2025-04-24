@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block content %}
+<article class="grid-container">
+  <header class="grid-x align-center-middle" style="margin-top: 20px;">
+    <div class="cell medium-8 text-center">
+      <h1 class="primary-header">Available Authors Preview</h1>
+    </div>
+  </header>
+
+  <main class="grid-x align-center-middle custom-main">
+    <div class="cell medium-10 medium-offset-1">
+      <!-- Callout displaying the search query and type -->
+      <div class="callout secondary text-center">
+        <h4>Query: <span class="query-term">{{ search_term }}</span></h4>
+        <h4>Search Type: <span class="query-type">Author</span></h4>
+      </div>
+
+      <!-- Search/filter controls -->
+      <div class="search-container" style="margin-bottom: 20px; display: flex; justify-content: center;">
+        <input type="text" id="authorSearchInput" placeholder="Filter Authors..." class="search-bar" onkeyup="filterAuthors()">
+      </div>
+
+      <!-- Scrollable results table -->
+      <div class="scrollable-table-container">
+        <table class="hover stack text-center results-table" id="authorsTable">
+          <thead>
+            <tr>
+              <th>Full Name</th>
+              <!-- Clicking this header will sort by No. of Publications in Database descending -->
+              <th onclick="sortByDBPublications()" style="cursor: pointer;">No. of Publications in Database &#9660;</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for author in authors %}
+            <tr>
+              <td>
+                <!-- The anchor contains the original full name (stored in data-original-text) and remains clickable -->
+                <a href="{{ url_for('author_search_results.author', query=author.full_name) }}" class="table-link" data-original-text="{{ author.full_name }}">
+                  {{ author.full_name }}
+                </a>
+              </td>
+              <td>{{ author.publication_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</article>
+
+<!-- Custom Styles -->
+<style>
+  .primary-header {
+    font-size: 2.5rem;
+    color: #2c3e50;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  .query-term,
+  .query-type {
+    color: #333;
+    font-weight: bold;
+  }
+  .custom-main {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .search-bar {
+    width: 60%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+  }
+  .results-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 0;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+  }
+  .results-table th {
+    background-color: #f4f4f4;
+    color: #333;
+    font-weight: bold;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+  }
+  .results-table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+    background-color: white;
+  }
+  .table-link {
+    color: #007BFF;
+    text-decoration: none;
+  }
+  .table-link:hover {
+    color: #0056b3;
+    text-decoration: none;
+  }
+  .callout.secondary {
+    background-color: #f8f8f8;
+    border-left: 5px solid #4CAF50;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+  }
+  .scrollable-table-container {
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  .scrollable-table-container thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f4f4f4;
+    z-index: 1;
+  }
+  .highlight {
+    background-color: yellow;
+  }
+</style>
+
+<!-- JavaScript for client-side filtering with regex highlighting and sorting -->
+<script>
+  // Utility function to escape regex special characters.
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function filterAuthors() {
+    const inputElem = document.getElementById('authorSearchInput');
+    const inputValue = inputElem.value;
+    let regex;
+    try {
+      // Create a regex using the escaped input (case-insensitive).
+      regex = new RegExp(escapeRegExp(inputValue), "i");
+    } catch (e) {
+      regex = null;
+    }
+    const table = document.getElementById('authorsTable');
+    const trs = table.getElementsByTagName('tr');
+    // Loop over all rows (skip header row at index 0)
+    for (let i = 1; i < trs.length; i++) {
+      const td = trs[i].getElementsByTagName('td')[0];
+      if (td) {
+        // Get the anchor element inside the cell.
+        const anchor = td.getElementsByTagName('a')[0];
+        if (!anchor) continue;
+        // Save the original text if not already stored.
+        if (!anchor.dataset.originalText) {
+          anchor.dataset.originalText = anchor.textContent;
+        }
+        const originalText = anchor.dataset.originalText;
+        // If input is non-empty and regex is valid, highlight matching substring.
+        if (regex && inputValue.trim() !== "") {
+          const highlightedText = originalText.replace(regex, '<span class="highlight">$&</span>');
+          anchor.innerHTML = highlightedText;
+        } else {
+          anchor.innerHTML = originalText;
+        }
+        // Show or hide the row based on whether the original text includes the search term.
+        trs[i].style.display = originalText.toLowerCase().includes(inputValue.toLowerCase()) ? "" : "none";
+      }
+    }
+  }
+
+  function sortByDBPublications() {
+    const table = document.getElementById("authorsTable");
+    const tbody = table.getElementsByTagName("tbody")[0];
+    // Get an array of rows from tbody.
+    let rows = Array.from(tbody.getElementsByTagName("tr"));
+    // Sort rows descending based on the numeric value in the second column (No. of Publications in Database).
+    rows.sort((a, b) => {
+      const aVal = parseInt(a.getElementsByTagName("td")[1].textContent) || 0;
+      const bVal = parseInt(b.getElementsByTagName("td")[1].textContent) || 0;
+      return bVal - aVal;
+    });
+    // Remove current rows.
+    while (tbody.firstChild) {
+      tbody.removeChild(tbody.firstChild);
+    }
+    // Append sorted rows.
+    rows.forEach(row => tbody.appendChild(row));
+  }
+</script>
+{% endblock %}

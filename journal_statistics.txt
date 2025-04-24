@@ -1,0 +1,2 @@
+[ "Plant Physiol", "Plant J", "Plant Cell", "Front Plant Sci", "J Exp Bot", "PNAS", "Plant Cell Physiol", "Plant Signal Behav", "Plant Mol Biol", "PLoS One", "New Phytol", "Int J Mol Sci", "Planta", "BMC Plant Biol", "J Biol Chem", "Plant Physiol Biochem", "Plant Sci", "Methods Mol Biol", "Sci Rep", "Plant Cell Environ", "Mol Plant", "Plant Cell Rep", "Plants Basel", "J Plant Physiol"]
+[5854, 4491, 3873, 3350, 2476, 2045, 1858, 1747, 1715, 1592, 1545, 1477, 1395, 1165, 1138, 921, 879, 875, 858, 807, 790, 707, 669, 609]

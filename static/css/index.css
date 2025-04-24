@@ -1,0 +1,191 @@
+
+        
+/* Image Heading Styles */
+/* Reduce the gap at the bottom of the hero */
+.callout.large {
+  padding-bottom: 5px !important;  /* was 10px or more */
+}
+
+.image-heading {
+  text-align: center;
+  position: relative;
+}
+
+.image-heading img#plantC-title {
+  display: inline-block;
+  max-width: 45%;
+  vertical-align: middle;
+}
+
+/* Loading Animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Description Styles */
+.lead {
+  font-size: 1.2rem;
+  line-height: 1.8;
+  color: #34495e;
+  margin-top: 10px;
+}
+
+.lead strong.count {
+  color: #27ae60;
+}
+
+/* Form Container Styles */
+.grid-container {
+  padding-top: 5px !important;     /* was 20px */
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.grid-x {
+  display: flex;
+  flex-wrap: wrap;
+  margin-left: -15px;
+  margin-right: -15px;
+}
+
+.cell {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.medium-6 {
+  flex: 0 0 50%;
+  max-width: 50%;
+}
+
+/* Search Forms Styles */
+form {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+}
+
+form label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+form input[type="text"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #bdc3c7;
+  border-radius: 5px;
+  font-size: 1rem;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  box-sizing: border-box;
+}
+
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Button Styles */
+.button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  flex: 1 1 auto;
+  min-width: 100px;
+  text-align: center;
+}
+
+.button:hover {
+  background-color: #2980b9;
+}
+
+.button.hollow {
+  background-color: white;
+  border: 2px solid #3498db;
+  color: #3498db;
+  padding: 8px 18px;
+}
+
+.button.hollow:hover {
+  background-color: #3498db;
+  color: white;
+}
+
+/* Search Instructions Styles */
+.search-instructions {
+  margin-top: 20px;
+}
+
+.search-instructions h4 {
+  font-size: 1.5rem;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.search-instructions .button-group {
+  justify-content: center;
+}
+
+.search-instructions .button-group .button {
+  background-color: transparent;
+  color: #3498db;
+  border: 1px solid #3498db;
+  padding: 8px 16px;
+}
+
+.search-instructions .button-group .button:hover {
+  background-color: #3498db;
+  color: white;
+}
+
+.help-text {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #7f8c8d;
+  line-height: 1.6;
+  min-height: 60px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .medium-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .search-instructions .button-group {
+    flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
+    min-width: unset;
+  }
+  /* DEBUG: highlight the two preview cells */
+  .grid-x > .cell.small-12.medium-6:nth-child(2) {
+    background: rgba(0,150,200,0.1) !important;
+  }          
+  
+}
+.figure-legend{
+    font-size:0.9rem;
+    color:#7f8c8d;
+    margin:4px 0 0;
+    text-align:center;   /* ⟵ centers the text */
+  }

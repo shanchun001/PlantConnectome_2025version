@@ -1,0 +1,2361 @@
+{% extends "base.html" %}
+
+{% block dependencies %}
+  {{ super() }}
+  <input type="hidden" id="selected_categories" value="{{ selected_categories }}">
+  <script>
+    // Function to append logs to HTML
+    function logToHTML(message) {
+      const logList = document.getElementById("log-list");
+      if (logList) {
+        const logItem = document.createElement("li");
+        logItem.textContent = message;
+        logList.appendChild(logItem);
+        logList.parentElement.scrollTop = logList.parentElement.scrollHeight;
+      }
+    }
+    // Override console.log
+    (function() {
+      const originalLog = console.log;
+      console.log = function(...args) {
+        originalLog.apply(console, args);
+        const message = args.map(arg => (typeof arg === "object" ? JSON.stringify(arg) : arg)).join(" ");
+        logToHTML(message);
+      };
+    })();
+  </script>
+  <!-- CytoscapeJS dependencies -->
+     
+  <script>
+    var queryTerms = "{{ search_term }}";
+    console.log("Query term from Flask:", queryTerms); // Debugging purpose
+  </script>
+  <script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script src="https://unpkg.com/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+  <script src="https://unpkg.com/layout-base/layout-base.js"></script>
+  <script src="https://unpkg.com/cose-base/cose-base.js"></script>
+  <script src="https://unpkg.com/cytoscape-fcose/cytoscape-fcose.js"></script>
+  <script src="https://unpkg.com/cytoscape-svg"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+
+  <!-- Marked.js dependency for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Load custom scripts -->
+  <script>
+    const g = "{{ genes }}";
+  </script>
+  <script src="{{ url_for('static', filename='js/search_results.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/info_popup.js') }}" defer></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/additional_styles.css') }}" defer>
+
+  <style>
+    /* ===========================================
+       Existing & Revised Styles
+       =========================================== */
+    input[type="text"] {
+      width: 100%;
+      padding: 5px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+
+    /* Button Styles */
+    .button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1em;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+    .button.primary {
+      background-color: #007BFF;
+      color: #fff;
+    }
+    .button.primary:hover {
+      background-color: #0056b3;
+    }
+    .button.success {
+      background-color: #28a745;
+      color: #fff;
+    }
+    .button.success:hover {
+      background-color: #1e7e34;
+    }
+    .button.secondary {
+      background-color: #6c757d;
+      color: #fff;
+    }
+    .button.secondary:hover {
+      background-color: #5a6268;
+    }
+    .button.alert {
+      background-color: #dc3545;
+      color: #fff;
+    }
+    .button.alert:hover {
+      background-color: #c82333;
+    }
+    .button:active {
+      transform: scale(0.98);
+    }
+
+    /* Modal Styles */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 2000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.4);
+    }
+    .modal.active {
+      display: block;
+    }
+    .modal-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: #fefefe;
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%;
+      max-width: 1000px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
+    .close-button {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.2s ease, transform 0.2s ease;
+    }
+    .close-button:hover,
+    .close-button:focus {
+      color: #000;
+      transform: scale(1.1);
+      text-decoration: none;
+    }
+    body.modal-open {
+      overflow: hidden;
+    }
+
+    /* General Styles */
+    .small-button {
+      font-size: 13px;
+      padding: 10px 15px;
+    }
+    .shape {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      margin-right: 8px;
+    }
+    /* Shape Styles */
+    .rectangle { background-color: #90EE90; }
+    .ellipse { border-radius: 50%; background-color: #89CFF0; }
+    .purple {
+      background-color: #FFD700;
+    }
+    .hexagon {
+      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+      background-color: #FFB6C1;
+    }
+    .diamond {
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      background-color: #98FB98;
+    }
+    .pentagon {
+      clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+      background-color: #E0FFFF;
+    }
+    .star {
+      clip-path: polygon(
+        50% 0%,
+        61% 35%,
+        98% 35%,
+        68% 57%,
+        79% 91%,
+        50% 70%,
+        21% 91%,
+        32% 57%,
+        2% 35%,
+        39% 35%
+      );
+      background-color: #FFA07A;
+    }
+    .square { background-color: #D8BFD8; }
+    .triangle {
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+      background-color: #D2B48C;
+    }
+    .roundrectangle {
+      border-radius: 20%;
+      background-color: #AFEEEE;
+    }
+    .diamond2 {
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      background-color: #D8BFD8;
+    }
+    .term {
+      display: inline-block;
+      background-color: transparent;
+      padding: 3px 8px;
+      margin: 2px;
+      border-radius: 12px;
+      font-size: 1.2em;
+      color: #333;
+    }
+    .graph-info {
+      font-size: 1.4em;
+      color: #555;
+      margin-top: 2px;
+    }
+
+    /* Scrollable Table Styles */
+    .table-container {
+      max-height: 500px;
+      overflow-y: auto;
+      overflow-x: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      box-sizing: border-box;
+      background-color: #fff;
+      margin-bottom: 30px;
+    }
+    .table_results {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: Arial, sans-serif;
+    }
+    .table_results th,
+    .table_results td {
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    .table_results th {
+      background-color: #f8f9fa;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .table_results tbody tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    .table_results tbody tr:hover {
+      background-color: #e9ecef;
+    }
+    .pubmed-link.pubmed-hyperlink {
+      color: #007BFF;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .pubmed-link.pubmed-hyperlink:hover {
+      color: #0056b3;
+      text-decoration: underline;
+    }
+
+    /* Scrollable Network Summary Styles */
+    .summary-container {
+      max-height: 500px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background-color: #fafafa;
+      margin-bottom: 20px;
+      box-sizing: border-box;
+    }
+    .summary-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    .summary-container::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    .summary-container::-webkit-scrollbar-track {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    /* Legend and Tooltip Styles */
+    #nodes-legend,
+    #edges-legend {
+      background-color: rgba(255, 255, 255, 0);
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    #nodes-legend ul,
+    #edges-legend ul {
+      padding-left: 0;
+    }
+    #nodes-legend li,
+    #edges-legend li {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+    }
+    .shape,
+    svg {
+      margin-right: 10px;
+    }
+    .side-tooltip {
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .side-tooltip a {
+      color: #007BFF;
+      text-decoration: none;
+    }
+    .side-tooltip a:hover {
+      text-decoration: underline;
+    }
+    .content.nodeinfo ul {
+      list-style-type: none;
+      padding-left: 0;
+    }
+    .content.nodeinfo li {
+      margin-bottom: 5px;
+    }
+
+    /* Custom Console Log Styles */
+    #custom-console-log {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      padding: 15px;
+      width: 200px;
+      height: 150px;
+      overflow-y: auto;
+      background-color: #fff;
+      border: 1px solid #e0e0e0;
+      font-family: Arial, sans-serif;
+    }
+    #custom-console-log h4 {
+      margin: 0 0 10px;
+      font-size: 16px;
+      color: #333;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 5px;
+    }
+    #custom-console-log ul {
+      list-style-type: none;
+      padding-left: 0;
+      margin: 0;
+      font-size: 16px; /* Adjust size as needed */
+    }
+    #custom-console-log ul li {
+      color: #666;
+      font-style: italic;
+    }
+
+    /* Improved Alert Box Styles */
+    .alert-box {
+      position: relative;
+      padding: 20px 20px 20px 50px;
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      font-family: Arial, sans-serif;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .alert-box p {
+      margin: 0;
+      padding-right: 30px;
+      font-size: 1em;
+    }
+    .alert-icon {
+      position: absolute;
+      top: 50%;
+      left: 15px;
+      transform: translateY(-50%);
+      font-size: 24px;
+      color: #721c24;
+    }
+    .alert-box .close-button {
+      position: absolute;
+      top: 50%;
+      right: 15px;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 24px;
+      font-weight: bold;
+      color: #721c24;
+      cursor: pointer;
+      transition: color 0.2s ease, transform 0.2s ease;
+    }
+    .alert-box .close-button:hover,
+    .alert-box .close-button:focus {
+      color: #491217;
+      transform: scale(1.1);
+      outline: none;
+    }
+    @media (max-width: 600px) {
+      .alert-box {
+        padding: 15px 15px 15px 45px;
+      }
+      .alert-icon {
+        font-size: 20px;
+        left: 10px;
+      }
+      .alert-box .close-button {
+        font-size: 20px;
+        right: 10px;
+      }
+    }
+    .alert-box:focus-within {
+      box-shadow: 0 0 0 3px rgba(114, 28, 36, 0.5);
+    }
+    .alert-box .close-button:focus {
+      outline: 2px solid #007BFF;
+    }
+
+    /* New Styles for Resize Buttons */
+    .resize-buttons {
+      position: absolute;
+      bottom: 0px;
+      right: 0px;
+      z-index: 12;
+      display: flex;
+      gap: 0px;
+    }
+    #cy_wrapper {
+      transition: width 0.3s ease, height 0.3s ease;
+    }
+    .fullscreen {
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+      z-index: 9998 !important;
+      background-color: white;
+    }
+    hr {
+      margin: 5px 5px;
+      border: none;
+      border-top: 1px solid #ddd;
+    }
+
+    /* AI Summary Generation Portion */
+    .ai-summary-controls {
+      background-color: #f7f7f7;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .ai-summary-controls h5 {
+      margin-bottom: 15px;
+      font-size: 1.3em;
+      color: #333;
+    }
+    .ai-summary-controls label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    .ai-summary-controls select,
+    .ai-summary-controls textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      font-family: Arial, sans-serif;
+      font-size: 1em;
+    }
+    .ai-summary-controls textarea {
+      resize: vertical;
+      min-height: 150px;
+    }
+    .ai-summary-controls .slider-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .ai-summary-controls .slider-container input[type="range"] {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .ai-summary-controls .slider-container span {
+      width: 50px;
+      text-align: center;
+      border: 1px solid #ccc;
+      padding: 5px;
+      border-radius: 5px;
+      background-color: #fff;
+    }
+    .slider-container-group {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      flex-wrap: wrap;
+    }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 30%;
+    }
+    .slider-container label {
+      width: 120px;
+      text-align: left;
+      font-weight: bold;
+    }
+    .slider-container input[type="range"] {
+      flex-grow: 1;
+      width: 100%;
+      margin: 0;
+    }
+    .slider-container span {
+      width: 50px;
+      text-align: center;
+      border: 1px solid #ccc;
+      padding: 3px;
+      border-radius: 5px;
+      background-color: #fff;
+      font-weight: bold;
+    }
+    #generatedSummary {
+      margin-top: 15px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+    #sentPrompt {
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      transition: max-height 0.3s ease-in-out;
+    }
+    #sentPrompt.expanded {
+      max-height: none;
+    }
+    #expandPromptBtn {
+      margin-top: 5px;
+      padding: 5px 10px;
+      font-size: 0.9em;
+      cursor: pointer;
+      border: none;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    #expandPromptBtn:hover {
+      background-color: #0056b3;
+    }
+    #apiResponse {
+      max-height: 250px;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #ffffff;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      transition: max-height 0.3s ease-in-out;
+    }
+    #apiResponse.expanded {
+      max-height: none;
+    }
+    #expandResponseBtn {
+      margin-top: 5px;
+      padding: 5px 10px;
+      font-size: 0.9em;
+      cursor: pointer;
+      border: none;
+      background-color: #007BFF;
+      color: white;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    #expandResponseBtn:hover {
+      background-color: #0056b3;
+    }
+  </style>
+{% endblock %}
+
+{% block content %}
+<div class="grid-container align-center" style="padding: 0 2px; width: 100%;">
+  {% if genes %}
+    {% set terms = search_term.split(',') %}
+
+    <!-- Heading + Scrollable Container -->
+    <div style="
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      white-space: nowrap;
+      gap: 8px;
+    ">
+      <h3 style="margin: 0; white-space: nowrap;">Search results for:</h3>
+
+      {% for term in terms %}
+        {% set clean_term = term.strip() %}
+        <span style="font-size: 1.8em; white-space: nowrap;">
+          {{ clean_term }}{% if not loop.last %},{% endif %}
+        </span>
+      {% endfor %}
+    </div>
+    
+    <!-- Graph info block (below, on a new line) -->
+    <div style="margin-bottom: 12px;">
+      <small class="graph-info">
+        Graph size: <span id="element-len">{{ element_len }}</span>;
+        Edges are based on: <span id="number-papers">{{ number_papers }}</span> paper(s)
+      </small>
+    </div>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        const size = parseInt(document.getElementById("element-len")?.textContent || "0", 10);
+        if (size > 1000) {
+          document.getElementById("large-graph-alert").style.display = "block";
+        }
+      });
+    </script>
+    <!-- Hidden by default -->
+    <div id="large-graph-alert" class="alert-box" role="alert" aria-live="assertive" style="display: none;">
+      <span class="alert-icon" aria-hidden="true">⚠️</span>
+      <p>
+        The network below is large and might be difficult to interpret. Click on 'Node filter' to focus on a specific type of entities (genes, metabolites and others). Likewise, click on 'Edge filter', to focus on specific relationships (regulates, interacts, localizes to).
+      </p>
+      <button class="close-button" aria-label="Dismiss alert" type="button" onclick="this.parentElement.style.display='none';">
+        &times;
+      </button>
+    </div>    
+    <div style="margin-bottom: 16px;">
+      <span class="lead" style="color: black;">Node summary of the network:</span>
+      <span style="background-color: #eef6fb; color: #333; padding: 6px 10px; border-radius: 6px; font-size: 1rem; display: inline-block; margin-left: 8px; border-left: 4px solid #3498db;">
+        Query nodes are <span style="color: red; font-weight: 500;">highlighted in red</span> and appear <strong>larger</strong> for easy identification.
+      </span>
+    </div>
+
+    <!-- Custom Console Log -->
+    <div id="custom-console-log">
+      <h4>Network Viewer Logs</h4>
+      <ul id="log-list">
+        <li></li>
+      </ul>
+    </div>
+
+    <!-- Search form and buttons -->
+    <form id="node-search-form">
+      <input type="text" id="node-search" name="node-search" placeholder="Search a node by its name" />
+      <button class="button primary" type="submit">Submit</button>
+      <button class="button success" type="button" onclick="window.location.href = '{{ url_for('index') }}'">Go back</button>
+      <button class="button success" type="button" id="download-pdf">Download as SVG</button>
+      <button class="button success" type="button" onclick="downloadTableAsTSV('table.tsv')">Download complete network as TSV</button>
+    </form>
+
+    <!-- Cytoscape Graph / Network Viewer -->
+    <div class="cy-wrapper" id="cy_wrapper" style="position: relative; width: 100%; height: 600px; background-color: white; border: 0px solid black;">
+      <!-- Resize Buttons -->
+      <div class="resize-buttons">
+        <button class="button secondary small-button" onclick="toggleFullScreen()" aria-label="Toggle full screen">
+          Full Screen
+        </button>
+      </div>
+      <div id="cy" style="width: 100%; height: 100%;"></div>
+
+      <!-- Existing Filter Buttons -->
+      <button class="open-button button secondary small-button" onclick="openNodeFilterForm()" style="top: 0px; left: 0px; position: absolute; z-index: 11;">
+        Node Filter Layout 
+      </button>
+      <button class="open-button button secondary small-button" onclick="openEdgeFilterForm()" style="top: 0px; right: 0px; position: absolute; z-index: 11;">
+        Edge Filter Layout 
+      </button>
+
+      <!-- Node Filter Form -->
+      <div class="form-popup" id="nodeFilterForm" style="display:none; position: absolute; top: 35px; left: 0px; background-color: #f9f9f9; border: 0px solid #ddd;">
+        <div class="form-container">
+          <div class="expanded button-group">
+            <button id="applyNodeFilter" class="button secondary" onclick="recalculateLayout()"> Recalculate layout </button>
+            <button class="button alert" onclick="nodecloseForm()"> <b> Close  </b> </button>
+          </div>
+          <h5>Node Filters:</h5>     <p>(Query nodes with existing edges will remain visible)</p>
+
+          <div id="nodeTypeCheckboxes" class="checkbox-grid"></div>
+        </div>
+      </div>
+
+      <!-- Edge Filter Form -->
+      <div class="form-popup" id="edgeFilterForm" style="display:none; position: absolute; top: 35px; right: 0px; background-color: #f9f9f9; border: 0px solid #ddd;">
+        <div class="form-container">
+          <div class="expanded button-group">
+            <button class="button secondary" onclick="recalculateLayout()">Recalculate layout</button>
+            <button class="button alert" onclick="edgecloseForm()"><b>Close </b></button>
+          </div>
+          <script>
+          /**
+          * Reorder the checkboxes in #checkboxesContainerId so that:
+          *   1) Checked items are at the top
+          *   2) Among checked items (or among unchecked items),
+          *      sort by data-count descending.
+          *   3) Only reorder items that are currently visible (style.display !== "none").
+          */
+          function reorderCheckboxes(checkboxesContainerId) {
+            const checkboxesContainer = document.getElementById(checkboxesContainerId);
+            let labels = Array.from(checkboxesContainer.getElementsByTagName('label'));
+
+            // Only reorder labels that are currently visible (i.e., display != 'none')
+            labels = labels.filter(label => label.style.display !== "none");
+
+            labels.sort((a, b) => {
+              const aCheckbox = a.querySelector('input[type="checkbox"]');
+              const bCheckbox = b.querySelector('input[type="checkbox"]');
+              const aChecked = aCheckbox.checked;
+              const bChecked = bCheckbox.checked;
+
+              const aCount = parseInt(aCheckbox.getAttribute('data-count') || '0', 10);
+              const bCount = parseInt(bCheckbox.getAttribute('data-count') || '0', 10);
+
+              // Checked items to the top
+              if (aChecked && !bChecked) return -1;
+              if (!aChecked && bChecked) return 1;
+
+              // Both checked or both unchecked => sort by count descending
+              return bCount - aCount;
+            });
+
+            // Re-append them in sorted order
+            labels.forEach(label => checkboxesContainer.appendChild(label));
+          }
+
+          /**
+          * Filter the checkboxes by search text AND reorder them 
+          * so that:
+          *   - matching ones remain visible, 
+          *   - non-matching are hidden,
+          *   - then reorder the visible ones by checked & count.
+          */
+          function filterCheckboxes(searchInputId, checkboxesContainerId) {
+            const inputValue = document.getElementById(searchInputId).value.toLowerCase();
+            const checkboxesContainer = document.getElementById(checkboxesContainerId);
+            const labels = Array.from(checkboxesContainer.getElementsByTagName('label'));
+          
+            // Show/hide by search
+            labels.forEach(label => {
+              const text = label.textContent.toLowerCase();
+              label.style.display = text.includes(inputValue) ? 'block' : 'none';
+            });
+          
+            // Then reorder the visible ones
+            reorderCheckboxes(checkboxesContainerId);
+          }
+
+          /**
+          * A helper that reorders #checkboxesContainerId without filtering by text.
+          * Useful to call on each checkbox state-change.
+          */
+          function handleCheckboxChange(checkboxesContainerId) {
+            reorderCheckboxes(checkboxesContainerId);
+          }
+          </script>
+          <!-- Search box for edge type -->
+          <input type="text" id="edgeTypeSearch" 
+                placeholder="Search edge types..." 
+                onkeyup="filterCheckboxes('edgeTypeSearch', 'edgeTypeCheckboxes')">
+          <h5>Edge Filters:</h5>     <p>(Query nodes with existing edges will remain visible)</p>
+
+          <div id="edgeTypeCheckboxes" class="checkbox-grid">
+          </div>
+
+          <!-- Edge-Group Filter section removed -->
+        </div>
+      </div>
+
+      <!-- Legend Section -->
+      <div id="nodes-legend" style="position: absolute; top: 45px; left: 0px; z-index: 10; border: 0px solid #ddd; padding: 0px;">
+        <h6 class="title" style="font-size: 12px;">Nodes Legend:</h6>
+        <ul>
+          <li><span class="shape ellipse purple"></span> Gene Identifier</li>
+          <li><span class="shape ellipse"></span> Gene/Protein</li>
+          <li><span class="shape rectangle"></span> Phenotype</li>
+          <li><span class="shape hexagon"></span> Cell/Organ/Organism</li>
+          <li><span class="shape diamond"></span> Chemical</li>
+          <li><span class="shape pentagon"></span> Treatment</li>
+          <li><span class="shape triangle"></span> Method</li>
+          <li><span class="shape roundrectangle"></span> Genomic/Transcriptomic feature</li>
+          <li><span class="shape diamond2"></span> Biological process</li>
+          <li><span class="shape star"></span> Others</li>
+        </ul>
+      </div>
+      <!-- Legend for edges -->
+      <div id="edges-legend" style="position: absolute; top: 45px; right: 0px; padding: 0px; z-index: 10; border: 0px solid #ddd;">
+        <h6 class="title" style="font-size: 12px;">Edges Legend:</h6>
+        <ul>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#32CD32; stroke-width:2"/>
+              <polygon points="35,12 45,15 35,18" style="fill:#32CD32;"/>
+            </svg> Activation/Induction/Causation/Result
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#DC143C; stroke-width:2"/>
+              <rect x="35" y="12" width="4" height="7" style="fill:#DC143C;"/>
+            </svg> Repression/Inhibition/Negative Regulation
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#4682B4; stroke-width:2"/>
+              <rect x="35" y="12" width="4" height="7" style="fill:#4682B4"/>
+            </svg> Regulation/Control
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#FF8C00; stroke-width:2"/>
+              <circle cx="38" cy="15" r="5" style="fill:#FF8C00;"/>
+            </svg> Expression/Detection/Identification
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#8A2BE2; stroke-width:2"/>
+              <circle cx="38" cy="15" r="5" style="fill:#8A2BE2;"/>
+            </svg> Association/Interaction/Binding
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#3CB371; stroke-width:2"/>
+              <circle cx="38" cy="15" r="5" style="fill:#3CB371;"/>
+            </svg> Localization/Containment/Composition
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#B22222; stroke-width:2"/>
+              <polygon points="32,15 38,10 43,15 38,20" style="fill:#B22222;"/>
+            </svg> Requirement/Activity/Function/Participation
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#4682B4; stroke-width:2"/>
+              <circle cx="38" cy="15" r="5" style="fill:#4682B4;"/>
+            </svg> Encoding
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="35" y2="15" style="stroke:#FF8C00; stroke-width:2"/>
+              <polygon points="35,12 45,15 35,18" style="fill:#FF8C00;"/>
+            </svg> Synthesis/Formation
+          </li>
+          <li>
+            <svg width="45" height="20">
+              <line x1="0" y1="15" x2="43" y2="15" style="stroke:#C0C0C0; stroke-width:2"/>
+              <polygon points="35,12 45,15 35,18" style="fill:#C0C0C0;"/>
+            </svg> Others
+          </li>
+        </ul>
+      </div>
+
+      <!-- Popup for node actions -->
+      <div class="side-tooltip" id="side-tooltip" style="display: none;">
+        <label class="title" id="ab-title">Abbreviations:</label><br/>
+        
+        <a id="pmid" class="pubmed-link pubmed-hyperlink" href="javascript:void(0)"></a>
+        <div class="content nodeinfo">
+          <ul>
+            <li><a href="javascript:void(0)" onclick="removeNode()">Remove node</a></li>
+            <li><a href="javascript:void(0)" onclick="isolateNeighborhood()">Isolate neighborhood</a></li>
+          </ul>
+        </div>
+        <div class="content" id="ab"></div>
+      </div>
+    </div>
+
+    <div class="paper-overlay"></div>
+
+    <!-- Cytoscape.js Script -->
+    <script>{{ cytoscape_js_code | safe }}</script>
+
+    <!-- AI Summary Generation Controls -->
+    <hr>
+    <div class="ai-summary-controls">
+      <h5>Customize your AI summary generation <small>(powered by <span id="modelLabel">GPT-4o-mini</span>)</small></h5>
+
+      <label for="prompt_type">Prompt Type Template:</label>
+      <select id="prompt_type">
+        <option value="gene/protein">Gene/Protein prompt</option>
+        <option value="phenotype">Phenotype prompt</option>
+        <option value="cell/organ/organism">Cell/Organ/Organism prompt</option>
+        <option value="chemical">Chemical prompt</option>
+        <option value="treatment">Treatment prompt</option>
+        <option value="method">Method prompt</option>
+        <option value="genomic/transcriptomic">Genomic/Transcriptomic prompt</option>
+        <option value="biological process">Biological process prompt</option>
+        <option value="other">Other prompt</option>
+      </select>
+
+      <script>
+        // Ensure that DOM elements are available before executing code
+        document.addEventListener("DOMContentLoaded", function () {
+          // Function to extract entity types from brackets
+          function extractEntityTypes(query) {
+            // 1️⃣ Try to pull out the bracketed content; if none, fall back to the whole string
+            const bracketMatch = query.match(/\[(.*?)\]/);
+            const content = bracketMatch ? bracketMatch[1] : query;
+          
+            // 2️⃣ Now split on commas and normalize
+            return content
+              .split(",")
+              .map(term => term.trim().toLowerCase())
+              .filter(term => term.length > 0);
+          }
+      
+          // Fetch the query term from backend
+          var queryTerms = "{{ search_term }}";  // Example: "CESA [gene], XYZ [metabolite]"
+          var formattedQuery = queryTerms;
+          var formattedQuery2 = extractEntityTypes(queryTerms);
+      
+          // Split the query into an array based on commas
+          var queryTermsArray = queryTerms.split(",");
+      
+          // If there are more than 5 terms, set formattedQuery to "multiple entities"
+          if (queryTermsArray.length > 1) {
+            formattedQuery = "multiple entities";
+          }
+          //console.log(queryTermsArray, "is a", formattedQuery);
+      
+          //console.log("Formatted Query:", formattedQuery);
+          //console.log("Formatted Query2:", formattedQuery2);
+      
+          // Define category mappings based on extracted entity type
+          const categoryMap = {
+            'biological process': [
+              'metabolic pathway', 'function', 'pathway', 'signaling pathway',
+              'metabolic process', 'cell process', 'biochemical process', 'cellular process',
+              'molecular function', 'signalling pathway', 'genetic process', 'biological pathway', 'process'
+            ],
+            'cell/organ/organism': [
+              'organism', 'organ', 'subcellular compartment', 'tissue', 'cell type',
+              'organelle', 'virus', 'organelles', 'cell structure', 'plant', 'organism part'
+            ],
+            'chemical': [
+              'metabolite', 'molecule', 'compound', 'chemical', 'hormone', 'phytohormone',
+              'polysaccharide', 'material', 'polymer', 'chemical structure', 'biopolymer',
+              'chemical compound', 'plant hormone', 'chemical group'
+            ],
+            'gene identifier': ['gene identifier'],
+            'gene/protein': [
+              'gene', 'protein', 'mutant', 'protein complex', 'enzyme', 'protein domain',
+              'genetic element', 'gene family', 'protein family', 'protein structure', 'peptide',
+              'protein motif', 'enzyme activity', 'protein region', 'gene feature', 'gene region',
+              'gene structure', 'protein feature', 'transcription factor', 'gene cluster', 'gene group',
+              'promoter', 'subunit', 'transcript', 'gene element', 'allele', 'protein sequence',
+              'protein modification', 'post-translational modification', 'genetic locus',
+              'protein subunit', 'genes', 'qtl', 'protein function', 'amino acid residue',
+              'histone modification', 'protein fragment', 'receptor', 'genetic event', 'protein kinase',
+              'protein class', 'protein group', 'gene product', 'antibody', 'proteins',
+              'protein interaction', 'gene module','gene, protein', 'gene, mutant', 'gene identifier'
+            ],
+            'genomic/transcriptomic feature': [
+              'genomic region', 'genome', 'amino acid', 'genomic feature', 'dna sequence', 'rna',
+              'sequence', 'mutation', 'chromosome', 'gene expression', 'genetic material', 'genotype',
+              'genomic element', 'genetic marker', 'epigenetic mark', 'genetic variation',
+              'regulatory element', 'epigenetic modification', 'dna element', 'mirna', 'genomic location',
+              'subfamily', 'dna', 'activity', 'genetic feature', 'sequence motif', 'genetic variant',
+              'motif', 'mrna', 'residue', 'region', 'genomic sequence', 'cis-element', 'clade',
+              'accession', 'plasmid', 'genomic data', 'cultivar', 'genomic event', 'genomic resource',
+              'ecotype', 'marker', 'lncrna', 'genetic construct', 'sequence feature', 'genus',
+              'genetic concept'
+            ],
+            'method': [
+              'method', 'technique', 'tool', 'database', 'software', 'dataset', 'concept', 'study',
+              'description', 'model', 'modification', 'location', 'author', 'measurement', 'experiment',
+              'researcher', 'mechanism', 'system', 'feature', 'parameter', 'algorithm', 'event',
+              'reaction', 'resource', 'interaction', 'device', 'metric', 'technology', 'network',
+              'construct', 'vector', 'category', 'data', 'research', 'geographical location',
+              'document', 'analysis', 'person', 'project', 'research field', 'researchers',
+              'gene network', 'relationship'
+            ],
+            'phenotype': ['phenotype'],
+            'process': ['process', 'biological process'],
+            'treatment': [
+              'treatment', 'environment', 'condition', 'time', 'environmental factor', 'disease',
+              'developmental stage', 'time point', 'stress', 'geographic location', 'abiotic stress',
+              'time period'
+            ]
+          };
+      
+          // Default category
+          let detectedCategory = 'other';
+      
+          // — Replace your old Object.entries(...) block with this:
+
+          // 1. Make sure we have an array of terms
+          const terms = Array.isArray(formattedQuery2)
+            ? formattedQuery2
+            : [formattedQuery2];
+
+          // 2. Map each term to its category (or 'other' if no keyword match)
+          const termCategories = terms.map(term => {
+            for (const [category, keywords] of Object.entries(categoryMap)) {
+              if (keywords.includes(term)) {
+                return category;
+              }
+            }
+            return 'other';
+          });
+
+          // 3. Get the unique list of categories found
+          const uniqueCategories = [...new Set(termCategories)];
+
+          // 4. Decide final detectedCategory
+          if (uniqueCategories.length === 1) {
+            // All terms fell into the same category
+            detectedCategory = uniqueCategories[0];
+          } else {
+            // Mixed categories (or none matched)
+            detectedCategory = 'other';
+          }
+
+          //console.log('Terms:', terms);
+          //console.log('Term → Category map:', termCategories);
+          //console.log('Detected category:', detectedCategory);
+      
+          //console.log("Final Detected Category:", detectedCategory);
+      
+          // Get dropdown
+          const promptTypeSelect = document.getElementById("prompt_type");
+      
+          // Ensure dropdown exists before updating it
+          if (promptTypeSelect) {
+            promptTypeSelect.value = detectedCategory;
+          } else {
+            console.error("Dropdown #prompt_type is missing.");
+          }
+          
+            // Define placeholders for each prompt type
+            const placeholders = {
+              'gene/protein': `Provide a detailed overview of ${formattedQuery}. Begin with a short introduction about its biology based on input, ensuring that all PMIDs are included and cited appropriately. Structure the rest of the output into multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+        
+              In each section, ensure every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Be careful to correctly interpret regulatory roles and interaction relationships, ensuring the distinction between regulators and targets is clear. Each section should aim for at least 1000 words to ensure a thorough discussion, even if information overlaps across sections.
+              
+              1. Gene/Protein Function:
+              
+              Describe the primary biological role of ${formattedQuery}, including its molecular processes, cellular components, and molecular functions. When describing biological processes (e.g., photosynthesis, protein synthesis, cell division), cellular components (e.g., chloroplast, nucleus), and molecular functions (e.g., protein-binding), ensure that each statement is supported by the corresponding PMID(s).
+              
+                •	Important: Do not assume regulatory roles unless explicitly indicated by the input data. Make sure ${formattedQuery} is accurately described in the context of its biological role without incorrectly assigning regulatory functions (e.g., if ${formattedQuery} is regulated by another gene, do not describe it as a regulator unless explicitly mentioned).
+              
+              Example of Correct vs. Incorrect Interpretations:
+              
+                •	Incorrect: “NPR1 directly regulates PR1 and PR5 genes.” (This would be incorrect if NPR1 is not a direct regulator of these genes but rather a part of a complex signaling cascade.)
+                •	Correct: “NPR1 acts as a master regulator in the salicylic acid signaling pathway, leading to the activation of downstream defense genes such as PR1 and PR5 (PMID: 18621949).” (This correctly indicates NPR1’s role as part of a pathway that activates target genes.)
+              
+              2. Interaction Partners:
+              
+              Identify the proteins, genes, or molecules that interact with ${formattedQuery}. This should be based on direct interaction evidence such as “binds to,” “forms complexes with,” or “co-localizes with.” Avoid describing co-expression data or implying regulation unless explicitly stated in the input.
+              
+                •	Clarification: If ${formattedQuery} interacts with another protein, describe it as an interaction, not a regulatory event unless explicitly stated. If ${formattedQuery} binds to another protein, avoid implying that it regulates that protein unless the input data indicates regulation. Cite the corresponding PMID(s) for each interaction.
+              
+              Example of Correct Interpretation:
+              
+                •	“FLS2 interacts with BAK1 to form a receptor complex that initiates the plant immune response (PMID: 17290224).” This correctly describes the interaction between FLS2 and BAK1 without assuming that FLS2 regulates BAK1 directly.
+              
+              3. Regulatory Targets:
+              
+              Describe what ${formattedQuery} regulates at the gene or protein level. Indicate downstream genes, pathways, or cellular processes that ${formattedQuery} directly influences based on input data. This section should only describe genes that ${formattedQuery} regulates, and should not include genes that regulate ${formattedQuery}.
+              
+                •	Important: Avoid reversing roles! Ensure that ${formattedQuery} is described as the regulator only if it directly regulates downstream targets.
+                •	Do not describe ${formattedQuery} as being regulated by other genes in this section.
+              
+              If no regulatory targets are present, write: “No regulatory targets present.”
+              
+              Example of Correct Interpretation:
+              
+                •	“TCP4 regulates the expression of genes involved in leaf development, including CUC2 and KNAT2, through direct transcriptional control (PMID: 20675571).” This statement correctly describes TCP4 as the regulator of downstream genes.
+              
+              4. Expression Patterns:
+              
+              Indicate where and when ${formattedQuery} is expressed, such as in tissue types, developmental stages, or under specific environmental conditions. Each statement should be supported by corresponding PMID(s).
+              
+                •	Important: Ensure accurate representation of expression patterns, such as spatial expression (e.g., in specific tissues or cells) or temporal expression (e.g., during a particular developmental stage).
+              
+              If no expression pattern data is available, write: “No expression information is present.”
+              
+              Example of Expression Patterns:
+              
+                •	“WOX5 is specifically expressed in the quiescent center of the root apical meristem, where it maintains stem cell identity (PMID: 17662945).” This correctly describes the spatial expression of WOX5.
+              
+              5. Gene/Protein Regulators:
+              
+              List the transcription factors, kinases, or other proteins that regulate ${formattedQuery}. Include all transcription factors that have relationships such as “binds to,” “regulates,” “enhances,” “suppresses,” etc.
+              
+                •	Important: Clearly distinguish between regulators (which regulate ${formattedQuery}) and targets (which ${formattedQuery} regulates). Be careful not to mix these roles.
+              
+              If no regulators are present, write: “No regulators present.”
+              
+              Example of Correct Interpretation:
+              
+                •	“ABI5, a key transcription factor in the abscisic acid signaling pathway, directly binds to the promoter of the RD29A gene and regulates its expression in response to drought stress (PMID: 11090216).” This describes ABI5 as a regulator of RD29A without confusing roles.
+              
+              6. Mutations and Variants:
+              
+              List any known mutations or genetic variants in ${formattedQuery} and describe their effects on its function, phenotype, or other biological processes. This could include changes in growth, yield, metabolite levels, gene expression, etc. Ensure that each statement is supported by the corresponding PMID(s).
+              
+                •	Important: Avoid overgeneralizing phenotypes. Be specific about the mutation’s impact on the plant’s biology or cellular function.
+              
+              If no mutants are present, write: “No mutant information is present.”
+              
+              Example of Mutation:
+              
+                •	“The irx3 mutation in the cellulose synthase gene CESA7 leads to reduced cellulose content and a collapsed xylem phenotype, which affects plant structural integrity (PMID: 12154130).” This describes the impact of a mutation on a specific gene function and phenotype.
+              
+              7. Agronomic or Environmental Relevance:
+              
+              Summarize the role of ${formattedQuery} in plant development, stress response, crop yield, or interactions with environmental factors such as drought, nutrient deficiency, or pest attacks. Each statement should be supported by corresponding PMID(s).
+              
+                •	Important: Emphasize the role of ${formattedQuery} in applied contexts such as crop improvement, stress resilience, and agronomic performance.
+              
+              Example of Agronomic Relevance:
+              
+                •	“Overexpression of DREB1A in Arabidopsis enhances drought tolerance by activating stress-responsive genes, making it a candidate gene for engineering drought-resistant crops (PMID: 10712535).” Ensure not to overstate its relevance across all crops.
+              
+              Additional Information:
+              
+              If any PMIDs or data from the input remain unused, create an additional section titled “Additional Information” where the leftover PMIDs and details are presented.
+              
+              Discussion and Conclusion:
+              
+              After completing the detailed sections on ${formattedQuery}, provide a Discussion and Conclusion that reflects on its broader significance in plant biology. Focus on key aspects without repeating previously discussed details, and synthesize the findings into a single cohesive paragraph that provides insights based on the information already presented.
+        
+              In the paragraph, ensure to:
+        
+                •	Summarize the overarching role of ${formattedQuery} in major biological processes like cellulose biosynthesis, plant development, and stress responses.
+                •	Contextualize ${formattedQuery} as either a regulator or target, supported by PMIDs, and discuss its role within broader plant biology frameworks.
+                •	Highlight significant findings from recent research on ${formattedQuery}, especially emerging trends that contribute to current understanding, and discuss the implications for future research.
+                •	Identify knowledge gaps in our understanding of ${formattedQuery}, pointing out where research is still needed (e.g., regulatory mechanisms, interaction partners, environmental relevance).
+                •	Propose future research directions, including the potential of genetic engineering technologies like CRISPR to further our understanding of ${formattedQuery}.
+                •	Discuss the practical applications of ${formattedQuery} research in fields such as agriculture and biotechnology, particularly focusing on how knowledge of ${formattedQuery} can contribute to crop improvement, stress tolerance, or biomass production.
+                •	End with a concise conclusion summarizing the importance of ${formattedQuery} in plant biology, and its potential contributions to both basic plant science and applied fields like agriculture and bioenergy production, with a forward-looking statement on future research impacts.
+              
+              Final Quality Check:
+              
+              Before finalizing the summary, perform a quality check to ensure that:
+              
+                •	${formattedQuery} is accurately described as either a regulator or target (avoid role reversals).
+                •	All the information is accurately described and present in the output.
+                •	Clear and precise language is used to distinguish between interaction, regulation, and expression patterns.
+                •	Relationships are validated based on input data and PMIDs to avoid misinterpretations.`,
+  
+              'phenotype': `Provide a detailed overview of ${formattedQuery} using the knowledge graph provided. Begin with a short introduction that gives an overview of ${formattedQuery}, including its observable characteristics and significance in plant biology. This introduction should be based on the input provided and include PMIDs where relevant. Then, structure the rest of the output as multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+  
+              In each section, ensure that every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Each section should aim for at least 1000 words to ensure a thorough discussion, even if information overlaps across sections.
+  
+              Phenotype Description:
+  
+              Describe the physical or observable characteristics associated with ${formattedQuery}. Include relevant details about plant morphology, development, growth patterns, or response to environmental stimuli. Ensure that each statement is supported by the corresponding PMID(s).
+  
+              • Important: Ensure precise descriptions and avoid making assumptions about regulatory mechanisms unless explicitly supported by the input data.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              • Incorrect: “This phenotype indicates increased drought tolerance due to upregulated ABA signaling.” (Incorrect if ABA signaling has not been explicitly stated in the input data.)
+              • Correct: “Plants exhibiting this phenotype show enhanced survival rates under drought conditions, as observed in controlled experiments (PMID: 12345678).” (This describes the phenotype without assuming underlying mechanisms.)
+  
+              Genetic Basis:
+  
+              Identify the genes, pathways, or molecular processes known to influence ${formattedQuery}. Discuss specific genes or regulatory networks associated with the phenotype, ensuring each statement is cited with the corresponding PMID(s).
+  
+              • Important: Clearly distinguish between genes that directly contribute to the phenotype and genes that are merely correlated with it.
+  
+              If no genetic basis is identified, write: “No genetic basis available.”
+  
+              Example of Correct Interpretation:
+  
+              • “The anthocyanin accumulation phenotype is regulated by MYB transcription factors such as PAP1 and PAP2, which directly activate flavonoid biosynthesis genes (PMID: 23456789).”
+  
+              Environmental Interactions:
+  
+              Describe how ${formattedQuery} is influenced by environmental factors such as temperature, light, water availability, soil conditions, or biotic stressors like pests and pathogens. Each statement should be supported by the corresponding PMID(s).
+  
+              • Important: Clearly distinguish between direct environmental effects on the phenotype and indirect effects mediated through genetic regulation.
+  
+              Example of Correct Interpretation:
+  
+              • “Leaf wilting severity increases under high-temperature stress, particularly above 35°C, as observed in field experiments (PMID: 34567890).”
+  
+              Developmental Timing:
+  
+              Indicate when ${formattedQuery} manifests during the plant’s lifecycle (e.g., during seedling development, flowering, or senescence). Ensure that each statement is supported by the corresponding PMID(s).
+  
+              • Important: If the timing of phenotype expression is influenced by genetic or environmental factors, ensure these relationships are clearly described and supported by citations.
+  
+              Example of Correct Interpretation:
+  
+              • “Chlorosis in mutant plants becomes evident at the early vegetative stage and worsens during flowering (PMID: 45678901).”
+  
+              Mutations and Variants:
+  
+              List any known mutations or genetic variants that affect ${formattedQuery}, along with their specific effects. Ensure that each statement is cited with the corresponding PMID(s).
+  
+              • Important: Be precise about the mutation’s impact, avoiding overgeneralization.
+  
+              If no mutations are reported, write: “No mutant information is present.”
+  
+              Example of Correct Interpretation:
+  
+              • “A knockout mutation in the FT gene delays flowering time by an average of 14 days under long-day conditions (PMID: 56789012).”
+  
+              Agronomic or Environmental Relevance:
+  
+              Summarize the impact of ${formattedQuery} on plant development, stress responses, crop yield, or interactions with environmental factors such as drought, nutrient availability, or pathogens. Cite all relevant PMIDs.
+  
+              • Important: Avoid overgeneralizing agronomic importance unless explicitly supported by studies.
+  
+              Example of Correct Interpretation:
+  
+              • “Enhanced root biomass in this phenotype improves drought resilience by increasing water uptake efficiency (PMID: 67890123).”
+  
+              Additional Information:
+  
+              If any PMIDs or data from the input remain unused, create an additional section titled “Additional Information” where the leftover PMIDs and details are presented.
+  
+              Discussion and Conclusion:
+  
+              After completing the sections, provide a Discussion and Conclusion that synthesizes key findings and contextualizes ${formattedQuery} in plant biology. Avoid repeating previously stated details but integrate insights in a meaningful way.
+  
+              • Summarize the broader role of ${formattedQuery} in plant morphology, development, or stress responses.
+              • Contextualize ${formattedQuery} within larger biological processes or regulatory networks, citing PMIDs appropriately.
+              • Highlight significant trends and emerging insights from research on ${formattedQuery}.
+              • Identify knowledge gaps, pointing out where further studies are needed (e.g., gene-environment interactions, phenotypic plasticity).
+              • Propose future research directions, including experimental approaches to better understand ${formattedQuery}.
+              • Discuss the practical applications of studying ${formattedQuery}, particularly for agriculture and crop improvement.
+              • Conclude with a concise summary of the importance of ${formattedQuery} and its potential contributions to plant science and applied research.
+  
+              Final Quality Check:
+  
+              Before finalizing the summary, perform a quality check to ensure that:
+  
+              • ${formattedQuery} is accurately described without assuming regulatory mechanisms unless explicitly stated.
+              • All the information is present and correctly cited.
+              • Language is precise in distinguishing between genetic basis, environmental interactions, and developmental timing.
+              • Relationships between genes, environmental factors, and phenotype manifestation are accurately represented.
+              • Any remaining PMIDs or relevant details from the knowledge graph are incorporated or listed in the ‘Additional Information’ section.`,
+  
+              'cell/organ/organism': `Provide a detailed overview of ${formattedQuery} using the knowledge graph provided. Begin with a short introduction that gives an overview of ${formattedQuery}, explaining its biological role and importance in plant biology. This introduction should be based on the input provided and include PMIDs where relevant. Then, structure the rest of the output as multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+  
+              In each section, ensure that every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Each section should aim for at least 1000 words to ensure that all details are included, even if information overlaps across sections.
+  
+              Biological Role:
+  
+              Describe the primary biological function of ${formattedQuery}, whether it refers to a cell type, organ, or organism. Explain its significance in the broader context of plant biology. Ensure that each statement is accompanied by the corresponding PMID(s). If multiple sources describe similar roles, cite all relevant PMIDs.
+  
+              • Important: Do not assign regulatory functions unless explicitly indicated by the input data.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              • Incorrect: "The root directly regulates shoot growth." (This would be incorrect unless explicit regulatory pathways are mentioned.)
+              • Correct: "The root contributes to overall plant development by facilitating water and nutrient uptake, which indirectly supports shoot growth (PMID: 12345678)."
+  
+              Involved Processes:
+  
+              Explain the biological processes or pathways that ${formattedQuery} is involved in, such as photosynthesis, nutrient uptake, or reproduction (depending on whether it is a cell, organ, or organism). Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Important: Avoid assuming that ${formattedQuery} is involved in a process unless explicitly supported by the input data.
+  
+              Example:
+  
+              • "Chloroplasts play a central role in photosynthesis, where they convert light energy into chemical energy (PMID: 87654321)."
+  
+              Cellular Components or Organ Functions:
+  
+              • For cells: Identify the cellular components or organelles that are part of ${formattedQuery} and their functions.
+              • For organs: Describe the specific role of the organ in the plant’s physiology and development.
+              • For organisms: Discuss the role of the organism in its ecosystem, focusing on its contribution to plant growth or interaction with its environment.
+  
+              Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Example:
+  
+              • "The leaf contains mesophyll cells, which house chloroplasts responsible for photosynthesis (PMID: 11223344)."
+  
+              Environmental Interactions:
+  
+              Describe how ${formattedQuery} interacts with environmental factors such as light, water, nutrients, or stress conditions (e.g., temperature or pathogens). Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Important: Clearly distinguish between direct environmental responses and secondary effects.
+  
+              Example:
+  
+              • "The root system enhances drought tolerance by regulating water uptake and root architecture under stress conditions (PMID: 33445566)."
+  
+              Development and Growth:
+  
+              Explain when and where ${formattedQuery} develops, including any factors that influence its development. This could refer to developmental stages, tissue differentiation, or organ formation. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Example:
+  
+              • "The shoot apical meristem continuously produces new organs throughout the plant’s lifecycle, contributing to primary growth (PMID: 99887766)."
+  
+              Agronomic or Environmental Relevance:
+  
+              Summarize how ${formattedQuery} impacts plant development, stress response, crop yield, or interaction with environmental conditions such as drought, soil quality, or pests. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Example:
+  
+              • "Drought-resistant root structures enhance plant survival under water-limited conditions, making them a target for breeding programs (PMID: 55443322)."
+  
+              Additional Information:
+  
+              Review all PMIDs and input information to check for any unused data. If any information or PMIDs remain unused, create an additional section titled “Additional Information” where the leftover PMIDs and details are presented. Ensure no PMIDs or important details are omitted.
+  
+              Discussion and Conclusion:
+  
+              After completing the sections, provide a Discussion and Conclusion that goes beyond summarizing the provided information. In this section, reflect on the following aspects, and where relevant, ensure that applicable PMIDs from the knowledge graph are cited within the discussion points:
+  
+              • Significance: Discuss the broader significance of ${formattedQuery} in plant biology, focusing on its role in plant structure, development, or physiological processes. Cite relevant PMIDs to substantiate claims about its significance.
+              • Research Relevance: Highlight important findings or patterns from the input data that contribute to current scientific understanding of ${formattedQuery}. Are there any notable trends or emerging insights from recent studies? Cite relevant PMIDs to support these findings and trends.
+              • Knowledge Gaps: Identify any gaps in knowledge or areas where further research on ${formattedQuery} is needed. Are there unresolved questions about its function, environmental interactions, or relevance to agriculture? Cite applicable PMIDs to illustrate where gaps exist.
+              • Applications: Discuss practical applications of ${formattedQuery} research in agriculture, forestry, or biotechnology. How could an improved understanding of ${formattedQuery} contribute to crop improvement, stress resistance, or plant productivity? Cite relevant PMIDs to support discussions of practical applications.
+              • Future Directions: Propose potential directions for future research, experiments, or breeding efforts based on the provided data. How might advancements in plant biology, genomics, or cell engineering technologies help explore ${formattedQuery}’s role further? Cite relevant PMIDs where appropriate to suggest future research directions.
+  
+              Conclude by summarizing the overall importance of ${formattedQuery} research and its potential contributions to both basic plant science and applied fields such as agriculture, environmental conservation, and bioenergy production. Ensure that all points in this section are based on the provided knowledge graph and PMIDs where relevant, but feel free to expand on implications and applications using logical reasoning based on the data. Cite PMIDs to ground the discussion in relevant research.`,
+              
+              'chemical': `Provide a detailed overview of ${formattedQuery} using the knowledge graph provided. Begin with a short introduction that gives an overview of ${formattedQuery}, explaining its chemical structure, biological role, and significance in plant biology. This introduction should be based on the input provided and include PMIDs where relevant. Then, structure the rest of the output as multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+  
+              In each section, ensure every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Each section should aim for at least 1000 words to ensure a thorough discussion, even if information overlaps across sections.
+  
+              Chemical Properties:
+  
+              Describe the chemical composition, structure, and physical properties of ${formattedQuery}. This should include molecular weight, functional groups, solubility, and any relevant structural details that contribute to its biological role. Each statement must be supported by the corresponding PMID(s).
+  
+              Important: Ensure that structural characteristics are tied to their biological function where applicable.
+  
+              Avoid: Making assumptions about reactivity or solubility unless explicitly stated in input data.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              Incorrect: "${formattedQuery} is highly reactive and unstable under physiological conditions." (This statement assumes instability without input data.)
+  
+              Correct: "${formattedQuery} contains hydroxyl functional groups that contribute to its solubility and biological interactions (PMID: XXXXXX)."
+  
+              Biological Role:
+  
+              Explain the role of ${formattedQuery} in plant biology, including its involvement in metabolic pathways, biosynthesis, signaling, or stress responses. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Clarification: If ${formattedQuery} is a precursor or intermediate in a biochemical pathway, explicitly state its role and avoid assuming broader functions unless supported by data.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              Incorrect: "${formattedQuery} regulates photosynthesis." (Regulation is not implied unless stated in input data.)
+  
+              Correct: "${formattedQuery} is a key intermediate in the biosynthesis of flavonoids, which contribute to plant defense and pigmentation (PMID: XXXXXX)."
+  
+              Interaction with Genes, Proteins, or Molecules:
+  
+              Identify the genes, proteins, or molecules that ${formattedQuery} interacts with. Describe these interactions in terms of binding, catalysis, signaling, or transport. If no interaction data is available, write: "No interaction data available."
+  
+              Important: Clearly distinguish between direct interactions and indirect associations inferred from pathway analysis.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              Incorrect: "${formattedQuery} regulates enzyme X." (Regulation should only be described if explicitly supported by input data.)
+  
+              Correct: "${formattedQuery} serves as a substrate for enzyme X, facilitating the production of compound Y (PMID: XXXXXX)."
+  
+              Environmental Interactions:
+  
+              Describe how ${formattedQuery} interacts with environmental factors such as soil composition, light, temperature, water availability, or biotic stressors (e.g., pests, pathogens). Include any effects on plant physiology or stress responses mediated by ${formattedQuery}. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Important: Specify whether ${formattedQuery} accumulates under certain environmental conditions or triggers physiological responses.
+  
+              Example:
+  
+              "${formattedQuery} accumulates in plant tissues during drought stress, suggesting a role in osmotic regulation (PMID: XXXXXX)."
+  
+              Synthesis and Regulation:
+  
+              Discuss how ${formattedQuery} is synthesized within plants, including the enzymes or pathways involved. Also, describe how its production is regulated at genetic, protein, or environmental levels. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Important: If synthesis is poorly understood, state this explicitly and highlight knowledge gaps.
+  
+              Avoid: Speculating about unknown biosynthetic steps without supporting data.
+  
+              Example:
+  
+              "The biosynthesis of ${formattedQuery} is catalyzed by enzyme A and enzyme B, which are upregulated during nutrient stress (PMID: XXXXXX)."
+  
+              Agronomic or Environmental Relevance:
+  
+              Summarize how ${formattedQuery} impacts plant development, stress response, crop yield, or interactions with environmental conditions (e.g., drought, soil quality, pests). Discuss any agricultural or environmental applications of ${formattedQuery}, such as its role in improving crop productivity or stress tolerance. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Important: Focus on applied aspects relevant to plant biology and agriculture.
+  
+              Avoid: Overgeneralizing effects across all plant species unless supported by data.
+  
+              Example:
+  
+              "Foliar application of ${formattedQuery} enhances drought tolerance in wheat by modulating antioxidant pathways (PMID: XXXXXX)."
+  
+              Additional Information:
+  
+              Review all PMIDs and input information to check for any unused data. If any information or PMIDs remain unused, create an additional section titled "Additional Information" where the leftover PMIDs and details are presented. Ensure no PMIDs or important details are omitted.
+  
+              Discussion and Conclusion:
+  
+              After completing the sections, provide a Discussion and Conclusion that synthesizes findings and contextualizes ${formattedQuery} in broader plant biology.
+  
+              Significance: Discuss the importance of ${formattedQuery} in plant biology, citing relevant PMIDs.
+  
+              Research Relevance: Highlight key findings and trends from recent studies.
+  
+              Knowledge Gaps: Identify areas where further research is needed, with supporting PMIDs.
+  
+              Applications: Explore practical applications of ${formattedQuery} in agriculture, biotechnology, or environmental science.
+  
+              Future Directions: Suggest potential areas for future research, including experimental techniques that could advance understanding.
+  
+              Conclude by summarizing the overall importance of ${formattedQuery} and its potential contributions to both basic plant science and applied fields such as agriculture, environmental sustainability, or biotechnology. Ensure that all points in this section are based on the provided knowledge graph and PMIDs, but feel free to expand on implications and applications using logical reasoning based on the data. Cite PMIDs to ground the discussion in relevant research.`,
+              
+              'treatment': `Provide a detailed overview of ${formattedQuery} using the knowledge graph provided. Begin with a short introduction that gives an overview of ${formattedQuery}, explaining its purpose and significance in plant biology or agriculture. This introduction should be based on the input provided and include PMIDs where relevant. Structure the rest of the output into multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+  
+              In each section, ensure that every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Each section should aim for at least 1000 words to ensure that all details are included, even if information overlaps across sections.
+  
+              Purpose and Objective:
+  
+              Describe the primary goal of ${formattedQuery}, such as improving plant growth, increasing yield, enhancing resistance to stressors, or controlling pests or diseases. Provide context about the type of treatment (e.g., chemical, biological, genetic) and explain why it is applied in a particular agricultural or research context. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Important: Clearly define the treatment's role and avoid misrepresenting its function (e.g., do not imply genetic modification effects for a purely chemical treatment).
+  
+              Clarification: If the treatment has multiple applications, separate them clearly and support each with evidence from PMIDs.
+  
+              Example of Correct vs. Incorrect Interpretation:
+  
+              Incorrect: “Application of auxins directly enhances drought resistance.” (If auxins only promote root growth, which indirectly aids drought resistance, this statement would be misleading.)
+  
+              Correct: “Auxin treatment enhances root growth, which in turn improves water uptake and drought tolerance (PMID: XXXXXXXX).”
+  
+              Mechanism of Action:
+  
+              Explain how ${formattedQuery} affects biological processes at the molecular, cellular, or physiological level. This could involve gene expression changes, metabolic adjustments, or structural modifications in plant tissues. Ensure that each statement is accompanied by the corresponding PMID(s). If multiple sources describe the mechanism, cite all relevant PMIDs.
+  
+              Important: Differentiate between direct and indirect effects. Ensure that molecular mechanisms are not oversimplified or overgeneralized.
+  
+              Clarification: If the treatment influences gene expression, specify whether it is upregulation, downregulation, or a pathway modification.
+  
+              Example of Correct vs. Incorrect Interpretation:
+  
+              Incorrect: “Salicylic acid directly induces pathogen resistance.” (If salicylic acid activates defense genes rather than directly neutralizing pathogens, this would be misleading.)
+  
+              Correct: “Salicylic acid activates defense-related genes, such as PR1 and NPR1, leading to enhanced resistance to pathogens (PMID: XXXXXXXX).”
+  
+              Target Genes/Pathways:
+  
+              Identify the genes, proteins, or biochemical pathways that are directly or indirectly affected by ${formattedQuery}. Describe how ${formattedQuery} interacts with these targets to bring about the desired effects. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Important: Clearly distinguish between genes/proteins that the treatment affects versus those that regulate the treatment's response.
+  
+              If no targets are identified in the input, write: “No direct target genes or pathways are identified.”
+  
+              Example of Correct Interpretation:
+  
+              “Trichoderma-based biocontrol treatments induce systemic resistance by activating JA and SA pathways, leading to enhanced pathogen resistance (PMID: XXXXXXXX).”
+  
+              Efficacy and Results:
+  
+              Summarize the known effects of ${formattedQuery} on plant growth, development, or productivity. Include experimental results or case studies that have demonstrated the effectiveness of this treatment under different conditions. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Important: Ensure that efficacy claims are supported by experimental data and not speculative.
+  
+              Example:
+  
+              “In field trials, application of phosphite fertilizers led to a 15% increase in rice yield under phosphorus-deficient conditions (PMID: XXXXXXXX).”
+  
+              Environmental Impact:
+  
+              Describe any known environmental effects of ${formattedQuery}, such as its interaction with soil, water, or ecosystems. This may include effects on non-target organisms, soil health, or ecological balance. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Important: If the treatment has known negative environmental impacts, they must be included.
+  
+              If no environmental impact data is available, write: “No environmental impact data is present.”
+  
+              Example:
+  
+              “Neonicotinoid-based insecticides have been linked to declines in pollinator populations due to their persistence in the environment (PMID: XXXXXXXX).”
+  
+              Agronomic or Practical Applications:
+  
+              Discuss the applications of ${formattedQuery} in agriculture, horticulture, or research. Include details on its use in improving crop yield, enhancing resistance to environmental stress (e.g., drought, salinity), or controlling pests or pathogens. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              Important: Clearly differentiate between experimental and commercially viable applications.
+  
+              If no agronomic applications are present, write: “No agronomic applications reported.”
+  
+              Example:
+  
+              “CRISPR-based genome editing has been successfully used to generate rice varieties with enhanced drought tolerance (PMID: XXXXXXXX).”
+  
+              Additional Information:
+  
+              Review all PMIDs and input information to check for any unused data. If any information or PMIDs remain unused, create an additional section titled “Additional Information” where the leftover PMIDs and details are presented. Ensure no PMIDs or important details are omitted.
+  
+              Discussion and Conclusion:
+  
+              After completing the sections, provide a Discussion and Conclusion that goes beyond summarizing the provided information. In this section, reflect on the following aspects, and where relevant, ensure that applicable PMIDs from the knowledge graph are cited within the discussion points:
+  
+              Significance: Discuss the broader significance of ${formattedQuery} in plant biology or agriculture, including its potential to improve crop productivity or resilience.
+  
+              Research Relevance: Highlight important findings or patterns from the input data that contribute to current scientific understanding of ${formattedQuery}.
+  
+              Knowledge Gaps: Identify any gaps in knowledge or areas where further research on ${formattedQuery} is needed.
+  
+              Applications: Discuss practical applications of ${formattedQuery} in agriculture, forestry, or biotechnology.
+  
+              Future Directions: Propose potential directions for future research, experiments, or field trials.
+  
+              Conclude by summarizing the overall importance of ${formattedQuery} research and its potential contributions to both basic plant science and applied fields such as agriculture, sustainability, or environmental management. Ensure that all points in this section are based on the provided knowledge graph and PMIDs where relevant, but feel free to expand on implications and applications using logical reasoning based on the data. Cite PMIDs to ground the discussion in relevant research.`,
+  
+              'process': `Provide a detailed overview of ${formattedQuery} using the knowledge graph provided. Begin with a short introduction that gives an overview of ${formattedQuery}, explaining its role and significance in plant biology, research, or agriculture. This introduction should be based on the input provided and include PMIDs where relevant. Structure the rest of the output into multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+  
+              In each section, ensure every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Each section should aim for at least 1000 words to ensure a thorough discussion, even if information overlaps across sections.
+  
+              Overview of the Process:
+  
+              Describe the biological or industrial significance of ${formattedQuery}, including its molecular basis, physiological role, or practical applications. Explain how the process is initiated, progresses, and reaches completion, citing all relevant PMIDs.
+  
+              Important: Clearly define the scope of ${formattedQuery} and distinguish it from related but distinct processes. Do not assume regulatory roles unless explicitly indicated by input data.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              Incorrect: “Photosynthesis directly regulates carbon sequestration in all plant tissues.” (Overgeneralization without specific evidence.)
+  
+              Correct: “Photosynthesis is the primary process responsible for carbon fixation in plants, with efficiency influenced by environmental conditions and regulatory pathways (PMID: 12345678).”
+  
+              Mechanistic and Technical Aspects:
+  
+              Provide a detailed explanation of the mechanistic basis of ${formattedQuery}, including key biochemical pathways, molecular interactions, or technological implementations. Discuss critical factors affecting its efficiency and accuracy. Ensure all statements are supported by corresponding PMIDs.
+  
+              Clarification: If ${formattedQuery} involves enzymatic reactions, genetic pathways, or computational models, specify their components and interactions precisely without implying causation unless explicitly stated.
+  
+              Example of Correct Interpretation:
+  
+              “RNA-seq is a high-throughput sequencing method that quantifies transcript levels with high precision, enabling transcriptomic analysis across conditions (PMID: 23456789).”
+  
+              Applications in Research and Practice:
+  
+              Discuss how ${formattedQuery} is used in plant biology research, agriculture, or biotechnology. Highlight case studies or experiments that demonstrate its impact, citing PMIDs.
+  
+              Important: Differentiate between theoretical and applied uses, specifying limitations where relevant.
+  
+              Example of Correct Interpretation:
+  
+              “CRISPR-based genome editing has been successfully applied to improve disease resistance in rice by targeting the OsERF922 gene (PMID: 34567890).”
+  
+              Advantages and Limitations:
+  
+              Examine the benefits and constraints of ${formattedQuery}. Discuss its efficiency, reproducibility, scalability, and challenges in implementation, citing supporting PMIDs.
+  
+              Important: Ensure balanced discussion, avoiding overstatements of its effectiveness without supporting evidence.
+  
+              Example of Limitation:
+  
+              “While CRISPR enables targeted genetic modifications, unintended off-target effects remain a challenge (PMID: 45678901).”
+  
+              Comparative Analysis with Alternative Processes:
+  
+              Compare ${formattedQuery} with alternative methods or related biological processes. Evaluate efficiency, reliability, and applicability in different contexts, citing PMIDs.
+  
+              Important: Ensure comparisons are evidence-based and include both strengths and weaknesses of each approach.
+  
+              Example of Comparison:
+  
+              “RNA-seq provides a comprehensive transcriptome analysis, whereas microarrays offer cost-effective but less dynamic expression profiling (PMID: 56789012).”
+  
+              Environmental, Agronomic, or Industrial Relevance:
+  
+              Summarize how ${formattedQuery} influences agricultural productivity, stress adaptation, or industrial applications. Highlight contributions to crop improvement, bioenergy production, or ecosystem stability, citing PMIDs.
+  
+              Important: Avoid overstating potential applications without supporting research.
+  
+              Example of Industrial Relevance:
+  
+              “Enzymatic hydrolysis of lignocellulose facilitates biofuel production, enhancing biomass utilization efficiency (PMID: 67890123).”
+  
+              Regulatory Factors and Influences:
+  
+              Identify external or internal factors regulating ${formattedQuery}, such as environmental conditions, genetic modifications, or biochemical constraints. Discuss their effects based on evidence from PMIDs.
+  
+              Important: Clearly separate regulatory elements from process outcomes to avoid causal misinterpretation.
+  
+              Example of Regulatory Influence:
+  
+              “Drought stress significantly alters ABA-mediated stomatal regulation, impacting transpiration efficiency (PMID: 78901234).”
+  
+              Additional Information:
+  
+              Review all PMIDs and input data to check for unused details. If any remain unused, create an additional section titled 'Additional Information' to ensure completeness.
+  
+              Discussion and Conclusion:
+  
+              Provide a reflective discussion and synthesis of ${formattedQuery}, incorporating:
+  
+              Significance: Discuss its overall impact on research, agriculture, or industry, citing PMIDs.
+  
+              Research Trends: Highlight emerging insights or technological advancements.
+  
+              Knowledge Gaps: Identify unresolved questions or research areas requiring further investigation.
+  
+              Future Directions: Propose research priorities, potential optimizations, or technological innovations.
+  
+              Applications: Explore practical applications in plant biology, biotechnology, and industrial processes.
+  
+              Conclude with a summary of ${formattedQuery}’s importance and its future implications, ensuring all statements are based on input data and PMIDs.
+  
+              Final Quality Check:
+  
+              Before finalizing, ensure that:
+  
+              ${formattedQuery} is accurately described within its biological or industrial context.
+  
+              All relationships, interactions, and methodologies are correctly cited and interpreted.
+  
+              Statements are precise, avoiding misinterpretation of causal links.
+  
+              All input data and PMIDs are utilized effectively.`,
+  
+              'method': `Provide a detailed overview of ${formattedQuery} using the knowledge graph provided. Begin with a short introduction that gives an overview of ${formattedQuery}, explaining its purpose, application, and significance in plant biology or research. This introduction should be based on the input provided and include PMIDs where relevant. Then, structure the rest of the output as multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+  
+              In each section, ensure that every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Each section should aim for at least 1000 words to ensure that all details are included, even if information overlaps across sections.
+  
+              1. **Purpose and Scope of the Method**:
+  
+                Describe the **primary objective** of ${formattedQuery}, including its intended use in plant biology or research. Explain the scope of the method—what it measures or assesses (e.g., gene expression, protein interaction, phenotypic variation)—and why it is significant for advancing scientific knowledge or agricultural practice. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+                • **Important**: Clearly state whether the method is designed for experimental validation, computational modeling, or both.
+                • **Avoid**: Overgeneralizing the method’s applications. If it is primarily for *in vitro* studies, do not claim it is applicable *in vivo* without supporting data.
+                • **Clarification**: If ${formattedQuery} is a bioinformatics method, distinguish whether it is predictive, comparative, or analytical.
+                
+                Example of Correct Interpretation:
+                • *"RNA-seq is a transcriptomics method used to quantify gene expression levels across different conditions, enabling researchers to identify differentially expressed genes with high sensitivity (PMID: 25099174)."*
+                
+              2. **Technical Overview**:
+  
+                Provide a **detailed explanation** of how ${formattedQuery} works, including the key steps involved in the method. Discuss any required instruments, reagents, software, or experimental conditions needed for optimal performance.
+  
+                • **Important**: Specify whether the method is **high-throughput**, **single-sample**, or requires specialized **pre-processing** steps.
+                • **Avoid**: Omitting critical steps in the workflow. If normalization or calibration is required, explicitly mention it.
+                • **Clarification**: If ${formattedQuery} is a computational method, describe algorithmic principles (e.g., machine learning, sequence alignment) and mention its compatibility with data formats or databases.
+                
+                Example of Correct Interpretation:
+                • *"Chromatin immunoprecipitation sequencing (ChIP-seq) involves crosslinking proteins to DNA, shearing chromatin, immunoprecipitating with antibodies, sequencing the bound DNA fragments, and mapping them to the genome to identify transcription factor binding sites (PMID: 18308839)."*
+  
+              3. **Applications in Research**:
+  
+                Summarize **how ${formattedQuery} is applied in research settings**, including specific case studies or experiments where the method has been used to generate important findings. Discuss the types of research questions that can be addressed using this method (e.g., functional genomics, gene editing, phenotypic analysis).
+  
+                • **Important**: Ensure that each application is **backed by PMID(s)** to provide credible examples.
+                • **Avoid**: Assuming universal applicability—some methods are condition-dependent.
+                • **Clarification**: If ${formattedQuery} has **multiple applications**, separate them based on experimental vs. computational usage.
+                
+                Example of Correct Interpretation:
+                • *"GWAS (Genome-Wide Association Studies) have been widely used in identifying loci associated with agronomic traits in crops, such as yield and drought resistance, by analyzing genetic variation across populations (PMID: 28991233)."*
+  
+              4. **Advantages and Limitations**:
+  
+                Discuss the **advantages** of ${formattedQuery} over other methods, such as its **precision, efficiency, scalability, or robustness in different experimental conditions**. Also, address any **limitations**, such as **cost, technical expertise required, sample dependency, or computational complexity**.
+  
+                • **Important**: Be objective—clearly state both strengths and weaknesses.
+                • **Avoid**: Overstating advantages without acknowledging practical constraints.
+                • **Clarification**: If applicable, mention how modifications of the method (e.g., use of different enzymes, updated algorithms) can mitigate some limitations.
+  
+                Example of Correct Interpretation:
+                • *"While CRISPR-Cas9 allows targeted genome editing with high precision, off-target effects remain a concern, requiring improved guide RNA design strategies to enhance specificity (PMID: 29302038)."*
+  
+              5. **Accuracy, Sensitivity, and Reproducibility**:
+  
+                Describe the **accuracy and sensitivity** of ${formattedQuery} in generating reliable data. Discuss how reproducible the results are, particularly when applied to different samples, conditions, or laboratories. Cite any studies that have evaluated the method’s performance.
+  
+                • **Important**: Define **error margins, detection thresholds**, and whether the method is **quantitative or qualitative**.
+                • **Avoid**: Vague claims about precision without reference to comparative studies.
+                • **Clarification**: If variability exists due to biological factors, experimental setup, or computational parameters, explicitly mention it.
+  
+                Example of Correct Interpretation:
+                • *"RNA-seq provides a high-throughput approach to transcriptome analysis, but variation in library preparation and sequencing depth can affect reproducibility, requiring normalization techniques such as TPM or FPKM for consistency (PMID: 30131361)."*
+  
+              6. **Agronomic or Environmental Relevance**:
+  
+                Summarize how ${formattedQuery} is used in **applied research**, particularly in **agriculture, forestry, or environmental science**. Discuss its role in **breeding programs, genetic engineering, stress tolerance studies, or any other practical applications that benefit plant production or sustainability**.
+  
+                • **Important**: Relate the method to **real-world applications**.
+                • **Avoid**: Overgeneralizing impact—specify its applicability in **specific crops, conditions, or ecosystems**.
+                • **Clarification**: If used in regulatory settings (e.g., GMO approval, disease monitoring), mention relevant **regulatory guidelines**.
+  
+                Example of Correct Interpretation:
+                • *"Metabolomics profiling using mass spectrometry has enabled the identification of drought-responsive metabolites in rice, guiding breeding programs for stress-resilient cultivars (PMID: 32398745)."*
+  
+              7. **Additional Information**:
+  
+                Review all PMIDs and input data to check for **unused information**. If any data remains unused, create an **additional section** titled **"Additional Information"** where the leftover PMIDs and details are presented. Ensure no PMIDs or critical details are omitted.
+  
+              8. **Discussion and Conclusion**:
+  
+                Provide a **Discussion and Conclusion** that extends beyond summary. Address the following aspects, ensuring that **applicable PMIDs** from the knowledge graph are cited:
+  
+                • **Significance**: How has ${formattedQuery} contributed to plant research or agricultural advancements?
+                • **Research Relevance**: Highlight key findings or patterns from input data.
+                • **Knowledge Gaps**: Identify areas needing further research.
+                • **Applications**: Discuss its impact on **crop improvement, environmental sustainability, and biotechnology**.
+                • **Future Directions**: Suggest **improvements, new applications, or integration with emerging technologies**.
+  
+                Example of Future Research:
+                • *"Future advancements in single-cell RNA sequencing (scRNA-seq) may enhance resolution in plant transcriptomics, enabling finer insights into cell-type-specific gene expression under stress conditions (PMID: 32703789)."*
+  
+                Conclude with a **forward-looking statement** on the impact of ${formattedQuery} in plant science, biotechnology, and environmental research.
+  
+              Final **Quality Check**:
+              • Verify that **${formattedQuery} is accurately described**.
+              • Ensure **precise language distinguishing experimental setups, outcomes, and applications**.
+              • Validate **relationships using PMIDs** to prevent misinterpretations.`,
+  
+              'genomic/transcriptomic': `Provide a detailed overview of ${formattedQuery} using the knowledge graph provided. Begin with a short introduction that describes its genomic or transcriptomic role and significance in plant biology. Ensure that all PMIDs are included and cited appropriately. Structure the rest of the output into multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+  
+              In each section, ensure every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Be careful to correctly interpret genomic functions, transcriptional regulation, and expression relationships, ensuring the distinction between regulatory elements, target genes, and expression patterns is clear. Each section should aim for at least 1000 words to ensure a thorough discussion, even if information overlaps across sections.
+  
+              ---
+  
+              ### 1. Genomic/Transcriptomic Role:
+  
+              Describe the primary role of ${formattedQuery} in the genome or transcriptome. Discuss whether it functions as a gene, a non-coding transcript, a regulatory element, or a genomic region involved in transcriptional regulation. Provide details on its biological relevance, including known roles in plant development, metabolism, or stress responses. 
+  
+              • **Important**: Do not assume regulatory roles unless explicitly indicated in the input data. Ensure that ${formattedQuery} is accurately described within its genomic or transcriptomic function. 
+  
+              #### Example of Correct vs. Incorrect Interpretations:
+              • **Incorrect**: "This locus regulates drought resistance through direct gene activation." *(Incorrect if no regulatory mechanism is explicitly described in the input.)*
+              • **Correct**: "This locus is associated with drought resistance, potentially through transcriptional regulation of stress-responsive genes (PMID: XXXXXXX)." *(Correct, as it acknowledges an association rather than assuming causation.)*
+  
+              ---
+  
+              ### 2. Molecular Mechanisms:
+  
+              Explain the molecular mechanisms by which ${formattedQuery} operates. This may include gene expression, regulatory interactions, splicing mechanisms, chromatin modifications, or other transcriptional/translational processes.
+  
+              • **Clarification**: If ${formattedQuery} is a transcript, describe its transcriptional processing rather than assuming a direct regulatory function.
+              • **Avoid** overinterpreting association studies. Ensure direct regulatory evidence is cited.
+  
+              #### Example of Correct Interpretation:
+              • "This gene undergoes alternative splicing to produce multiple transcript isoforms with distinct functional roles (PMID: XXXXXXX)." *(Clearly states a transcriptomic function.)*
+  
+              ---
+  
+              ### 3. Expression Patterns:
+  
+              Summarize the expression patterns of ${formattedQuery}, including spatial, temporal, and conditional expression in tissues, developmental stages, or environmental responses.
+  
+              • **Important**: Avoid assuming functional significance of expression patterns without supporting evidence.
+              • If no expression pattern data is available, write: “No expression information is present.”
+  
+              #### Example of Correct vs. Incorrect Interpretations:
+              • **Incorrect**: "This transcript is highly expressed in roots, making it a key regulator of root development." *(Incorrect unless the input explicitly states regulatory functions.)*
+              • **Correct**: "This transcript is predominantly expressed in roots, suggesting a potential role in root development (PMID: XXXXXXX)." *(Correct, as it remains neutral about function.)*
+  
+              ---
+  
+              ### 4. Regulatory Elements and Networks:
+  
+              Describe any known regulatory elements (e.g., promoters, enhancers, silencers) or transcription factor binding sites associated with ${formattedQuery}. Identify key regulators, epigenetic markers, or post-transcriptional modifications.
+  
+              • **Important**: Clearly distinguish between **regulatory elements (which control gene expression)** and **target genes (which are regulated by ${formattedQuery}).**
+              • If no regulatory elements are available, write: “No regulatory elements present.”
+  
+              #### Example of Correct Interpretation:
+              • "The promoter region of ${formattedQuery} contains binding sites for WRKY transcription factors, which modulate its expression under pathogen stress (PMID: XXXXXXX)."
+  
+              ---
+  
+              ### 5. Functional Implications:
+  
+              Discuss the functional significance of ${formattedQuery} in plant biology. Explain how it contributes to physiological processes, metabolism, development, or environmental responses.
+  
+              • **Important**: Do not overstate functional roles if they are inferred rather than experimentally validated.
+  
+              #### Example of Correct Interpretation:
+              • "Expression analysis suggests that ${formattedQuery} is involved in drought stress response by regulating downstream stress-responsive genes (PMID: XXXXXXX)." *(Accurately states an association.)*
+  
+              ---
+  
+              ### 6. Genomic Variants and Mutations:
+  
+              List known genetic variants or mutations in ${formattedQuery} and describe their impact. Discuss phenotypic consequences, altered gene function, or disease susceptibility.
+  
+              • **Clarification**: Be precise about mutation effects. Avoid generalizing phenotypes without specific evidence.
+              • If no variants are present, write: “No variant information available.”
+  
+              #### Example of Correct vs. Incorrect Interpretations:
+              • **Incorrect**: "Mutations in ${formattedQuery} cause severe growth defects." *(Incorrect if only correlative data is available.)*
+              • **Correct**: "The loss-of-function mutation in ${formattedQuery} is associated with reduced biomass under drought conditions (PMID: XXXXXXX)." *(Correct, as it specifies an association.)*
+  
+              ---
+  
+              ### 7. Agronomic or Environmental Relevance:
+  
+              Summarize the agronomic or environmental importance of ${formattedQuery}. Discuss its role in crop yield, stress adaptation, or responses to abiotic/biotic factors such as drought, salinity, and pathogens.
+  
+              • **Important**: Ensure claims about agricultural importance are backed by evidence.
+              • If no agronomic relevance is reported, write: “No agronomic information available.”
+  
+              #### Example of Correct Interpretation:
+              • "Overexpression of ${formattedQuery} enhances drought tolerance by upregulating stress-responsive genes, making it a target for crop improvement (PMID: XXXXXXX)."
+  
+              ---
+  
+              ### 8. Additional Information:
+  
+              If any PMIDs or input details remain unused, create an additional section titled **“Additional Information”** where the remaining data is included.
+  
+              ---
+  
+              ### Discussion and Conclusion:
+  
+              After completing the detailed sections, provide a **Discussion and Conclusion** that synthesizes findings and reflects on their significance in plant biology. 
+  
+              In this section, ensure to:
+              • **Summarize** ${formattedQuery}’s overall role in genomic and transcriptomic processes.
+              • **Contextualize** its impact on plant biology, development, or stress responses.
+              • **Highlight significant research trends** and emerging insights.
+              • **Identify knowledge gaps**, pointing out unresolved questions or areas needing further investigation.
+              • **Propose future research directions**, such as genome-editing approaches (e.g., CRISPR) or transcriptomics studies.
+              • **Discuss practical applications** in agriculture, bioengineering, or plant biotechnology.
+              • End with a **concise summary**, emphasizing ${formattedQuery}’s relevance and potential contributions to both basic research and applied fields.
+  
+              ---
+  
+              ### Final Quality Check:
+  
+              Before finalizing, perform a **quality check** to ensure:
+              • ${formattedQuery} is correctly described within its genomic/transcriptomic role.
+              • No role reversals between **regulators** and **targets**.
+              • All statements are backed by **PMIDs**.
+              • Clear language is used to distinguish **interactions, regulation, and expression patterns**.
+              • No information from the input is omitted or misinterpreted.
+              `,            
+  
+              'biological process': `Provide a detailed overview of ${formattedQuery} using the knowledge graph provided. Begin with a short introduction that gives an overview of ${formattedQuery}, explaining its biological significance in plant biology and its role in essential plant processes. This introduction should be based on the input provided and include PMIDs where relevant. Then, structure the rest of the output as multiple paragraphs, where each section is described separately and follows the scientific review format outlined below.
+  
+              In each section, ensure that every detail from the input, including all PMIDs, is included and cited appropriately. If a statement is supported by multiple PMIDs, list all relevant PMIDs. Use scientific language and a formal tone suitable for publication. Each section should aim for at least 1000 words to ensure that all details are included, even if information overlaps across sections.
+  
+              Biological Role:
+  
+              Describe the primary biological role of ${formattedQuery}, outlining the essential processes it contributes to in plant biology (e.g., photosynthesis, nutrient transport, cell division, stress response). Provide context on the importance of the process for plant growth, development, or survival. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Important: Avoid assuming regulatory relationships unless explicitly mentioned in the input data. Ensure that ${formattedQuery} is accurately described in its functional context.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              • Incorrect: “Photosynthesis regulates stomatal opening and closing.” (This is incorrect because photosynthesis does not regulate stomatal movement directly.)
+              • Correct: “Stomatal opening and closing are influenced by light and CO2 levels, which are closely linked to the process of photosynthesis (PMID: 12345678).”
+  
+              Molecular and Cellular Mechanisms:
+  
+              Explain the molecular and cellular mechanisms involved in ${formattedQuery}, detailing how it is regulated and the interactions between genes, proteins, or other molecules that drive the process. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Clarification: If ${formattedQuery} involves multiple interacting pathways, describe these interactions precisely without overgeneralizing their roles.
+  
+              Example:
+  
+              • “Auxin signaling involves the degradation of Aux/IAA proteins through ubiquitination, which enables the transcriptional activation of downstream genes controlling cell elongation (PMID: 23456789).”
+  
+              Key Genes and Pathways:
+  
+              Identify the key genes and biochemical pathways associated with ${formattedQuery}. Describe the specific roles these genes or pathways play in regulating and facilitating the process. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Important: Clearly distinguish between genes that regulate ${formattedQuery} and those that are regulated by it.
+  
+              Example of Correct Interpretation:
+  
+              • “The ethylene biosynthesis pathway involves ACS and ACO enzymes, which catalyze the conversion of S-adenosylmethionine to ethylene (PMID: 34567890).”
+  
+              Environmental Influence:
+  
+              Discuss how environmental factors such as light, temperature, water availability, and stress conditions (e.g., drought, pathogens) impact ${formattedQuery}. Describe any adaptive changes or regulatory mechanisms plants use to modulate the process in response to environmental changes. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Clarification: If an environmental factor is described as an influence, ensure it is presented as an external modulator rather than a direct regulator.
+  
+              Example of Correct Interpretation:
+  
+              • “Drought stress induces ABA accumulation, which enhances stomatal closure to reduce water loss (PMID: 45678901).”
+  
+              Evolutionary Context:
+  
+              If applicable, describe the evolutionary significance of ${formattedQuery}, including how it may have adapted to different environmental conditions over time and its importance in various plant lineages. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Important: Do not assume evolutionary conservation without explicit data. If no evolutionary data is available, state: “No evolutionary data available.”
+  
+              Example:
+  
+              • “The C4 photosynthesis pathway evolved independently multiple times in response to declining atmospheric CO2 levels, providing a more efficient carbon fixation mechanism in arid environments (PMID: 56789012).”
+  
+              Agronomic or Environmental Relevance:
+  
+              Summarize how ${formattedQuery} affects agronomic traits such as crop yield, stress resistance, or resource use efficiency. Discuss the relevance of this process in plant breeding, biotechnology, or agricultural management. Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Important: Do not overstate agronomic significance unless supported by the input data.
+  
+              Example:
+  
+              • “Drought tolerance in maize is enhanced by overexpression of the DREB2A gene, which activates stress-responsive pathways (PMID: 67890123).”
+  
+              Additional Information:
+  
+              Review all PMIDs and input information to check for any unused data. If any information or PMIDs remain unused, create an additional section titled “Additional Information” where the leftover PMIDs and details are presented. Ensure no PMIDs or important details are omitted.
+  
+              Discussion and Conclusion:
+  
+              After completing the sections, provide a Discussion and Conclusion that goes beyond summarizing the provided information. In this section, reflect on the following aspects, and where relevant, ensure that applicable PMIDs from the knowledge graph are cited within the discussion points:
+  
+              • Significance: Discuss the broader significance of ${formattedQuery} in plant biology, focusing on its role in essential processes such as plant development, reproduction, or adaptation to environmental changes.
+              • Research Relevance: Highlight important findings or patterns from the input data that contribute to current scientific understanding of ${formattedQuery}.
+              • Knowledge Gaps: Identify any gaps in knowledge or areas where further research on ${formattedQuery} is needed.
+              • Applications: Discuss practical applications of ${formattedQuery} in agriculture, biotechnology, or environmental science.
+              • Future Directions: Propose potential directions for future research, experiments, or applications based on the provided data.
+  
+              Conclude by summarizing the overall importance of ${formattedQuery} research and its potential contributions to both basic plant science and applied fields such as agriculture, environmental sustainability, and biotechnology. Ensure that all points in this section are based on the provided knowledge graph and PMIDs where relevant, but feel free to expand on implications and applications using logical reasoning based on the data. Cite PMIDs to ground the discussion in relevant research.`,
+  
+              'other': `Provide a detailed analysis of ${formattedQuery} using the knowledge graph provided. Begin with a brief introduction that gives an overview of ${formattedQuery}, explaining its biological, chemical, or environmental significance in relation to plant science. The introduction should summarize key points from the input and include relevant PMIDs to provide context. Following this, structure the output as multiple sections, each addressing a key aspect of ${formattedQuery} in a scientific review format.
+  
+              In each section, ensure that every detail from the input, including all PMIDs, is cited appropriately. If multiple sources support a statement, list all relevant PMIDs. Use formal scientific language and aim for a minimum of 1000 words per section to ensure thorough coverage of all important details, even if there is overlap across sections.
+  
+              Relevance to Plant Biology:
+              Describe the importance of ${formattedQuery} in the context of plant biology. Identify specific biological, ecological, or chemical processes it is involved in and explain how these contribute to plant growth, development, or environmental interactions. Provide context on its role in plant health or adaptation, ensuring that each statement is supported by relevant PMIDs.
+  
+              • Important: Clearly define whether ${formattedQuery} plays a direct or indirect role in plant biology. Do not overgeneralize its impact without proper citations.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              • Incorrect: "${formattedQuery} is crucial for all plant growth and development."
+              • Correct: "${formattedQuery} plays a role in root development by influencing auxin transport, thereby affecting cell elongation (PMID: 12345678)."
+  
+              Biological Interactions or Chemical Properties:
+              Describe any known biological interactions, chemical properties, or molecular mechanisms related to ${formattedQuery}. This could include interactions with other organisms (e.g., symbiosis, competition), chemical reactions in the soil or environment, or molecular roles within the plant. Ensure each statement is supported by the corresponding PMID(s).
+  
+              • Clarification: If ${formattedQuery} interacts with other biological or chemical entities, clearly distinguish between direct interactions and indirect influences. Cite specific mechanisms where possible.
+  
+              Example of Correct Interpretation:
+  
+              • "${formattedQuery} binds to target molecule to facilitate nutrient uptake in the rhizosphere, enhancing plant growth under phosphorus deficiency (PMID: 23456789)."
+  
+              Impact on Agricultural Practices or Environmental Health:
+              Explain how ${formattedQuery} influences agricultural practices or environmental health. Discuss any known effects on crop yield, soil quality, or resource efficiency. Also, consider how ${formattedQuery} interacts with environmental factors such as climate change, pests, or disease management. Include practical examples if available, and ensure each statement is supported by relevant PMIDs.
+  
+              • Important: Avoid assumptions about large-scale impacts without specific evidence. Ensure that each claim is backed by data from the knowledge graph.
+  
+              Example of Correct vs. Incorrect Interpretations:
+  
+              • Incorrect: "${formattedQuery} improves all crop yields."
+              • Correct: "Increased levels of ${formattedQuery} enhance drought tolerance in maize by modulating stomatal closure (PMID: 34567890)."
+  
+              Broader Ecological or Environmental Role:
+              Examine the broader ecological or environmental role of ${formattedQuery}, focusing on its importance within ecosystems. Does it contribute to nutrient cycling, plant diversity, or ecosystem stability? Ensure that all relevant ecological roles are discussed and that each statement is supported by PMIDs.
+  
+              • Clarification: If ${formattedQuery} plays a role in environmental resilience, specify how it interacts with biotic or abiotic factors.
+  
+              Example of Correct Interpretation:
+  
+              • "${formattedQuery} plays a role in microbial symbiosis, facilitating nitrogen fixation and improving soil fertility in leguminous crops (PMID: 45678901)."
+  
+              Potential for Biotechnology or Environmental Engineering:
+              Summarize the potential applications of ${formattedQuery} in biotechnology, environmental management, or other applied fields. How might this knowledge be used to improve agricultural productivity, soil health, or sustainability efforts? Ensure that each statement is accompanied by the corresponding PMID(s).
+  
+              • Important: Clearly distinguish between proven applications and theoretical potential. Do not exaggerate the implications of ${formattedQuery} without proper evidence.
+  
+              Example of Correct Interpretation:
+  
+              • "Genetic modification of ${formattedQuery} has been explored for improving stress resistance in tomato plants, with promising preliminary results in laboratory settings (PMID: 56789012)."
+  
+              Additional Information:
+  
+              Review all the PMIDs and input data to check for any unused information. If any details or PMIDs remain unused, create an additional section titled “Additional Information” to present these points. Ensure no important details are omitted.
+  
+              Discussion and Conclusion:
+  
+              After completing the sections, provide a comprehensive Discussion and Conclusion that goes beyond summarizing the provided information. Reflect on the following aspects, ensuring that applicable PMIDs from the knowledge graph are cited where relevant:
+  
+              • Significance: Discuss the overall significance of ${formattedQuery} in plant biology or environmental science. Consider its role in key biological processes, its ecological importance, or its potential applications. Cite relevant PMIDs to substantiate claims about its significance.
+              • Research Relevance: Highlight key findings or trends from recent studies that contribute to the current understanding of ${formattedQuery}. Are there notable patterns or emerging insights from recent research? Cite relevant PMIDs to support these findings.
+              • Knowledge Gaps: Identify any gaps in the current understanding of ${formattedQuery} that require further research. Are there unresolved questions about its interactions, chemical properties, or environmental impacts? Cite relevant PMIDs to illustrate where further study is needed.
+              • Applications: Discuss practical applications of ${formattedQuery} in agriculture, biotechnology, or environmental science. How might an improved understanding of ${formattedQuery} contribute to advancements in these fields? Cite PMIDs to support practical applications.
+              • Future Directions: Propose potential directions for future research or applications based on the current knowledge. How might advancements in biotechnology, environmental engineering, or plant science enhance our understanding of ${formattedQuery}? Cite relevant PMIDs to suggest areas for future study.
+  
+              Conclude by summarizing the overall importance of ${formattedQuery} research, and its potential contributions to plant science, environmental sustainability, and applied fields such as biotechnology and agricultural management. Ensure that all points are based on the provided knowledge graph and PMIDs, but feel free to expand on future implications using logical reasoning. Cite PMIDs to ground your conclusions in the latest research.`
+            };
+          
+            // Update the custom prompt text area with the appropriate placeholder
+            function updatePromptText(selectedType) {
+              const customPromptTextarea = document.getElementById("customPrompt");
+              if (customPromptTextarea) {
+                customPromptTextarea.value = placeholders[selectedType] || placeholders['other'];
+              }
+            }
+          
+            // Set initial placeholder text
+            updatePromptText(detectedCategory);
+          
+            // Event listener for dropdown changes
+            if (promptTypeSelect) {
+              promptTypeSelect.addEventListener("change", function () {
+                updatePromptText(this.value);
+              });
+            }
+          
+          });
+      </script>
+
+      <label for="customPrompt">Enter your custom prompt:</label>
+      <textarea id="customPrompt"></textarea>
+
+      <div class="slider-container-group">
+        <div class="slider-container">
+          <label for="temperature">Temperature:</label>
+          <input type="range" id="temperature" min="0" max="2" step="0.01" value="0">
+          <span id="tempValue">0</span>
+        </div>
+
+        <div class="slider-container">
+          <label for="top_p">Top_P:</label>
+          <input type="range" id="top_p" min="0" max="1" step="0.01" value="0">
+          <span id="top_pValue">0</span>
+        </div>
+
+        <div class="slider-container">
+          <label for="max_tokens">Max Tokens:</label>
+          <input type="range" id="max_tokens" min="0" max="16383" step="1" value="4096">
+          <span id="max_tokensValue">4096</span>
+        </div>
+      </div>
+
+      <button id="generateSummaryButton" class="button primary">Generate Summary</button>
+      <div id="generatedSummary"></div>
+
+      <script>
+        document.addEventListener("DOMContentLoaded", function() {
+          var generateSummaryButton = document.getElementById('generateSummaryButton');
+          if (generateSummaryButton) {
+              generateSummaryButton.addEventListener('click', function () {
+                  var networkSummaryText = document.getElementById("networkSummary").textContent;
+                  var customPrompt = document.getElementById("customPrompt").value;
+                  var placeholderText = document.getElementById("customPrompt").getAttribute('placeholder');
+      
+                  if (!customPrompt || customPrompt.trim() === "") {
+                      customPrompt = placeholderText;
+                      document.getElementById("customPrompt").value = placeholderText;
+                  }
+      
+                  var temperature = document.getElementById("temperature").value;
+                  var top_p = document.getElementById("top_p").value;
+                  var max_tokens = document.getElementById("max_tokens").value;
+      
+                  if (!networkSummaryText || networkSummaryText.trim() === "") {
+                      console.error("Network summary is empty!");
+                      return;
+                  }
+      
+                  // Clean up formatting:
+                  formattednetworkSummaryText = networkSummaryText.replace(/\n\s*/g, ' ').trim();
+                  // Construct the JSON payload
+                  var promptPayload = {
+                      temperature: temperature,
+                      top_p: top_p,
+                      max_tokens: max_tokens,
+                      models: "gpt-4o-mini",
+                      search_term: "{{ search_term }}",
+                      user_input: customPrompt + "\n\n",  // Adding extra line break before summary
+                      summary: formattednetworkSummaryText,
+                  };
+      
+                  var generatedSummaryDiv = document.getElementById("generatedSummary");
+                  generatedSummaryDiv.innerHTML = "";
+      
+                  // Create the expand/collapse button at the TOP
+                  var expandPromptBtn = document.createElement("button");
+                  expandPromptBtn.id = "expandPromptBtn";
+                  expandPromptBtn.textContent = "Expand Prompt";
+                  expandPromptBtn.style.marginBottom = "10px";
+                  generatedSummaryDiv.appendChild(expandPromptBtn);
+      
+                  // Create a container for the prompt sent
+                  var promptContainer = document.createElement("div");
+                  promptContainer.id = "sentPrompt";
+                  promptContainer.innerHTML = `
+                      <h6>Prompt sent to API:</h6>
+                      <pre>${Object.entries(promptPayload).map(([key, value]) => `${key}: ${value}`).join("\n")}</pre>
+                  `;
+                  generatedSummaryDiv.appendChild(promptContainer);
+      
+                  // Create the expand/collapse button at the TOP for the response
+                  var expandResponseBtn = document.createElement("button");
+                  expandResponseBtn.id = "expandResponseBtn";
+                  expandResponseBtn.textContent = "Expand Summary";
+                  expandResponseBtn.style.marginBottom = "10px";
+                  generatedSummaryDiv.appendChild(expandResponseBtn);
+      
+                  // Create a container for the API response (generated summary)
+                  var responseContainer = document.createElement("div");
+                  responseContainer.id = "apiResponse";
+                  responseContainer.innerHTML = `
+                      <h6>Generated Summary:</h6>
+                      <div id='markdownOutput'></div>
+                  `;
+                  generatedSummaryDiv.appendChild(responseContainer);
+      
+                  // Expand/Collapse functionality
+                  expandPromptBtn.addEventListener("click", function () {
+                      let promptDiv = document.getElementById("sentPrompt");
+                      if (promptDiv.classList.contains("expanded")) {
+                          promptDiv.classList.remove("expanded");
+                          this.textContent = "Expand Prompt";
+                      } else {
+                          promptDiv.classList.add("expanded");
+                          this.textContent = "Collapse Prompt";
+                      }
+                  });
+      
+                  expandResponseBtn.addEventListener("click", function () {
+                      let responseDiv = document.getElementById("apiResponse");
+                      if (responseDiv.classList.contains("expanded")) {
+                          responseDiv.classList.remove("expanded");
+                          this.textContent = "Expand Summary";
+                      } else {
+                          responseDiv.classList.add("expanded");
+                          this.textContent = "Collapse Summary";
+                      }
+                  });
+      
+                  console.log("temperature:", temperature);
+                  console.log("top_p:", top_p);
+                  console.log("max_tokens:", max_tokens);
+                  console.log("Network Summary Generation in progress...");
+                  function convertPubmedIDs() {
+                    const container = document.getElementById('markdownOutput');
+                    if (container) {
+                      // Replace patterns of the form "PMID: 26771740_results1"
+                      container.innerHTML = container.innerHTML.replace(/PMID:\s*(\d+)_([a-zA-Z0-9]+)/g, function(match, id, context) {
+                        const combined = `${id}_${context}`; // e.g., "26771740_results1"
+                        return `<a href="javascript:void(0);" class="pubmed-link pubmed-hyperlink" onclick="addModalContent('${combined}')">${match}</a>`;
+                      });
+                    }
+                  }
+      
+                // Inside your fetch call:
+                fetch('/process-summary', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(promptPayload),
+                })
+                .then(response => {
+                  const reader = response.body.getReader();
+                  const decoder = new TextDecoder();
+                  let completeSummary = '';
+                  let updateInterval;
+                  const markdownOutput = document.getElementById('markdownOutput');
+  
+                  // This function updates the container and converts PubMed IDs.
+                  function updateContent() {
+                    // Only update if there is new content.
+                    markdownOutput.innerHTML = marked.parse(completeSummary);
+                    convertPubmedIDs();
+                  }
+  
+                  // Throttle updates: update every 500ms.
+                  updateInterval = setInterval(() => {
+                    updateContent();
+                  }, 500);
+  
+                  function read() {
+                    reader.read().then(({ done, value }) => {
+                      if (done) {
+                        console.log("Stream complete");
+                        // Final update and clear the interval.
+                        updateContent();
+                        clearInterval(updateInterval);
+                        return;
+                      }
+  
+                      const chunk = decoder.decode(value, { stream: true });
+                      completeSummary += chunk;
+                      // (No immediate update here—updates occur every 500ms)
+                      read();
+                    });
+                  }
+                  read();
+                })
+                .catch((error) => {
+                  console.error('Error:', error);
+                });
+              });
+          } else {
+              console.error("Generate Summary button not found!");
+          }
+      });
+      </script>
+  
+    </div>
+    <hr>
+
+    <!-- Validation Result Container -->
+    <div id="validationResult"></div>
+
+    <p><span class="lead">Text summary of the network:</span></p>
+    <div class="summary-container resizable">
+      <div id="networkSummary">
+        <p>{{ network_summary }}</p>
+      </div>
+    </div>
+
+    <hr>
+    <div>
+      <p><span class="lead">Table summary of the network:</span></p>
+      <div class="table-container resizable">
+        <table class="table_results" id="table_id">
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Interaction Type</th>
+              <th>Target</th>
+              <th>PMID</th>
+              <th>Section</th>
+            </tr>
+          </thead>
+          <tbody id="body_results">
+            {% for gene in genes %}
+            <tr>
+              <td>{{ gene.id }} [{{ gene.idtype }}]</td>
+              <td>{{ gene.edge_disamb }}</td>
+              <td>{{ gene.target }} [{{ gene.targettype }}]</td>
+              <td>{{ gene.publication }}</td>
+              <td>
+                <a href="javascript:void(0);"
+                   class="pubmed-link pubmed-hyperlink"
+                   onclick="addModalContent(
+                      '{{ gene.p_source }}',
+                      '{{ gene.id }} [{{ gene.idtype }}]',
+                      '{{ gene.inter_type }}',
+                      '{{ gene.target }} [{{ gene.targettype }}]'
+                    )"></a>
+                  {{ gene.p_source }}
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          /* Sliders for Temperature, Top_p, Max_tokens */
+          document.getElementById('temperature').addEventListener('input', function(e) {
+            document.getElementById('tempValue').textContent = e.target.value;
+          });
+          document.getElementById('top_p').addEventListener('input', function(e) {
+            document.getElementById('top_pValue').textContent = e.target.value;
+          });
+          document.getElementById('max_tokens').addEventListener('input', function(e) {
+            document.getElementById('max_tokensValue').textContent = e.target.value;
+          });
+        });
+      </script>
+    </div>
+    <!-- Node summary -->
+    <hr>
+    <div id="nodeSummary"></div>
+  {% else %}
+    <div class="grid-container fluid">
+      <h2>No hits were found using the query: {{ search_term }}</h2>
+      <p>Please try another search term or check your spelling.</p>
+      <button class="button success" onclick="window.location.href = '{{ url_for('index') }}'">Go back</button>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Additional Scripts for Resize and Fullscreen Functionality -->
+<script>
+  let isEnlarged = false;
+  function enlargeCyWrapper() {
+    const cyWrapper = document.getElementById('cy_wrapper');
+    if (!isEnlarged) {
+      cyWrapper.style.height = '1000px';
+      cyWrapper.style.width = '1500px';
+      isEnlarged = true;
+      const enlargeButton = document.querySelector('button[onclick="enlargeCyWrapper()"]');
+      if (enlargeButton) {
+        enlargeButton.textContent = 'Shrink';
+      }
+    } else {
+      cyWrapper.style.height = '600px';
+      cyWrapper.style.width = '600px';
+      isEnlarged = false;
+      const enlargeButton = document.querySelector('button[onclick="enlargeCyWrapper()"]');
+      if (enlargeButton) {
+        enlargeButton.textContent = 'Enlarge';
+      }
+    }
+    if (typeof cy !== 'undefined') {
+      cy.resize();
+      cy.fit();
+    }
+  }
+  function toggleFullScreen() {
+    const cyWrapper = document.getElementById('cy_wrapper');
+    const paperModal = document.querySelector('.paper-overlay');
+    if (!document.fullscreenElement) {
+      if (cyWrapper.requestFullscreen) {
+        cyWrapper.requestFullscreen();
+      } else if (cyWrapper.webkitRequestFullscreen) {
+        cyWrapper.webkitRequestFullscreen();
+      } else if (cyWrapper.msRequestFullscreen) {
+        cyWrapper.msRequestFullscreen();
+      }
+      cyWrapper.appendChild(paperModal);
+      paperModal.style.position = "fixed";
+      paperModal.style.zIndex = "2147483647";
+      paperModal.style.display = "none";
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
+      document.body.appendChild(paperModal);
+    }
+  }
+</script>
+{% endblock %}

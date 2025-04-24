@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <!-- Contains the FoundationCSS CSS and JS for the database. Do add in the necessary dependencies for each page! -->
+    {% block dependencies %}
+    <title>PlantConnectome</title>
+    
+    <!-- Load jQuery -->
+    <script src="{{ url_for('static', filename='js/vendor/jquery.js') }}"></script>
+    <!-- Load What-Input (required for Foundation) -->
+    <script src="{{ url_for('static', filename='js/vendor/what-input.js') }}"></script>
+    <!-- Load Foundation CSS (minified version) -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/foundation.min.css') }}">
+    {% endblock %}
+</head>
+<body>
+    {% block navbar %}
+    <div class="top-bar">
+        <div class="top-bar-left">
+            <ul class="menu">
+                <li class="menu-text">Plant Connectome</li>
+                <style>
+                    .list-item {
+                        display: flex;
+                        align-items: center;
+                    }
+                    .list-item img {
+                        width: 40px; /* Adjust the width as per your needs */
+                        height: 30px; /* Adjust the height as per your needs */
+                        margin-right: 20px; /* Adjust the margin as per your needs */
+                    }
+                </style>
+                <li class="list-item"><img src="/static/PC_icon.png"></li>
+                <li><a href="/">Home</a></li>
+                <li><a href="/catalogue">Entities</a></li>
+                <li><a href="/features">Features</a></li>
+                <li><a href="/help">Help</a></li>
+                <li><a href="/download">Download</a></li>
+
+                
+
+            </ul>
+        </div>
+        <div class="top-bar-right">
+            <ul class="menu">
+            </ul>
+        </div>
+    </div>
+    {% endblock %}
+
+    <!-- All subsequent templates will override this block -->
+    {% block content %}{% endblock %}
+
+    {% block footer %}
+    <article class="grid-container">
+        <div class="row border-box">
+            <ul class="menu align-center">
+                <li class="menu-text">PlantConnectome@2025</li>
+                <li><a href="https://twitter.com/labmutwil" target="_blank">Follow us on Twitter</a></li>
+                <li><a href="https://discord.gg/qr8tYYHu7Y" target="_blank">Mutwil Lab on Discord: Questions / suggestions? Let us know!</a></li>
+            </ul>
+        </div>
+    </article>
+    {% endblock %}
+
+    {% block start_foundation %}
+    <!-- Load Foundation JS -->
+    <script src="{{ url_for('static', filename='js/vendor/foundation.min.js') }}"></script>
+    
+    <!-- Initialize Foundation -->
+    <script>
+        $(document).ready(function() {
+            $(document).foundation();
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>

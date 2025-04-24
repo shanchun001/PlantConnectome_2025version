@@ -1,0 +1,530 @@
+{% extends "base.html" %}
+
+{% block dependencies %}
+{{ super() }}
+
+<!-- Custom Styles -->
+<style>
+  /* 1. Global Box-Sizing */
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  /* 2. Button Group Styling */
+  .button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px; /* Reduced space between buttons */
+    justify-content: center; /* Center the buttons */
+    padding: 10px 0;
+  }
+
+  /* 3. Button Styling */
+  .btn {
+    background-color: #007BFF; /* Primary blue color */
+    color: #fff;
+    border: none;
+    padding: 8px 16px; /* Reduced padding for less wide buttons */
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px; /* Slightly smaller font size */
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+    text-align: center;
+    white-space: nowrap; /* Prevent text from wrapping */
+  }
+
+  /* 4. Hollow Button Styling */
+  .btn-hollow {
+    background-color: transparent;
+    border: 2px solid #007BFF;
+    color: #007BFF;
+  }
+
+  /* 5. Primary Button Variant (Blue) */
+  .btn-primary {
+    background-color: #007BFF; /* Standard primary blue */
+    border: none;
+    color: #fff;
+  }
+
+  /* 6. Hover Effects */
+  .btn:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+  }
+
+  .btn-hollow:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+    color: #fff; /* Change text color to white */
+    border-color: #0056b3; /* Match border to background */
+  }
+
+  .btn-primary:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+  }
+
+  /* 7. Active/Current Button */
+  .btn.active {
+    background-color: #0056b3; /* Darker blue for primary buttons */
+    color: #fff; /* Ensure text is readable */
+    border: none; /* Remove border for primary buttons */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    transform: translateY(-2px); /* Slight lift effect */
+  }
+
+  /* 8. Active State for Hollow Buttons */
+  .btn-hollow.active {
+    background-color: #007BFF; /* Fill hollow button with primary color */
+    color: #fff; /* Change text color to white */
+    border-color: #0056b3; /* Darker border */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transform: translateY(-2px); /* Slight lift */
+  }
+
+  /* 9. Active State for Primary Buttons */
+  .btn-primary.active {
+    background-color: #0056b3; /* Darker blue */
+    color: #fff; /* Ensure text is readable */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transform: translateY(-2px); /* Slight lift */
+  }
+
+  /* 10. Disabled Button Styling */
+  .btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+
+  /* 11. Focus State for Accessibility */
+  .btn:focus {
+    outline: none; /* Remove default outline */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5); /* Custom focus ring */
+  }
+
+  /* 12. Search Form Styling */
+  #node-search-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: nowrap; /* Prevent wrapping */
+  }
+
+  /* Ensure both input and button have the same height and font size */
+  #node-search,
+  #search-button {
+    height: 40px; /* Consistent height */
+    font-size: 14px; /* Consistent font size */
+    line-height: 1.5; /* Vertically center text */
+    padding-top: 0;
+    padding-bottom: 0;
+    margin: 0; /* Reset margins */
+  }
+
+  /* Adjust the input field */
+  #node-search {
+    padding: 0 12px; /* Horizontal padding */
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    flex: 1 1 auto; /* Allow input to grow */
+    max-width: 300px; /* Set a reasonable max width */
+  }
+
+  /* Adjust the submit button */
+  #search-button {
+    padding: 0 16px; /* Horizontal padding */
+    flex: 0 0 auto; /* Prevent button from growing */
+    border: none; /* Remove default border */
+    border-radius: 4px; /* Match input border-radius */
+    background-color: #007BFF; /* Primary color */
+    color: #fff; /* Text color */
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease, box-shadow 0.3s ease;
+  }
+
+  /* Hover state for the submit button */
+  #search-button:hover {
+    background-color: #0056b3; /* Darker blue on hover */
+  }
+
+  /* Active state for the submit button */
+  #search-button:active {
+    background-color: #004494; /* Even darker on active */
+    transform: translateY(1px); /* Slight press effect */
+    box-shadow: none;
+  }
+
+  /* Disabled Button Styling */
+  #search-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+
+  /* 13. Responsive Adjustments */
+  @media (max-width: 600px) {
+    .btn {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    #node-search,
+    #search-button {
+      height: 35px; /* Slightly smaller height on mobile */
+      font-size: 12px;
+    }
+
+    #node-search {
+      max-width: 250px; /* Adjust max width for smaller screens */
+    }
+  }
+
+  /* 14. Pagination Styling */
+  .pagination {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    padding: 0;
+    margin-top: 20px;
+  }
+
+  .pagination li {
+    /* Make pagination items look like buttons */
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+  }
+
+  .pagination li:hover {
+    background-color: #e2e6ea;
+  }
+
+  .pagination li.current {
+    background-color: #007BFF;
+    color: #fff;
+    border-color: #007BFF;
+  }
+
+  .pagination li.disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+  }
+
+  /* Ensure pagination buttons are also responsive */
+  @media (max-width: 600px) {
+    .pagination li {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+  }
+
+  /* 15. Additional Styles for Links */
+  .redirect-link {
+    color: #007BFF;
+    text-decoration: none;
+  }
+
+  .redirect-link:hover {
+    text-decoration: underline;
+  }
+
+  /* 16. Table Styling */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+
+  th, td {
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f1f1f1;
+  }
+
+  /* 17. Grid Container Padding */
+  .grid-container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  /* 18. Header Styling */
+  h3 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+</style>
+
+{% endblock %}
+
+{% block content %}
+<div class='grid-container align-center'>
+  <h3 style="font-size: 20px;">
+    This page contains a catalog of all of the entities. Click on the letter key to view all relevant entities to conduct a search.
+  </h3>
+  
+  <form action="{{ url_for('form', form_type='gene_id', search_type='exact') }}" method='POST' id='gene-form'>
+    <input type="text" aria-describedby="searchfield1" id="gene_id" name='gene_id' style="display: none;">
+  </form>
+  
+  <!-- Button Group -->
+  <div class='button-group'>
+    {% for key in header %}
+      <button 
+        type="button" 
+        class="btn btn-hollow" 
+        data-key="{{ key }}"
+        aria-pressed="false">
+        {{ key }}
+      </button>
+    {% endfor %}
+  </div>
+  
+  <!-- Search Form -->
+  <form id="node-search-form">
+    <input type="text" id="node-search" name="node-search" placeholder="Search entities by name" />
+    <button class="btn btn-primary" id="search-button" type="submit" disabled>Submit</button>
+  </form>
+  
+  <!-- Catalogue Table -->
+  <table>
+    <thead>
+      <tr>
+        <th>Entity</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="catalogue">
+      <!-- Dynamically populated -->
+    </tbody>
+  </table>
+  
+  <!-- Pagination -->
+  <nav aria-label="Pagination">
+    <ul class="pagination">
+      <!-- Will be filled in by JS code -->
+    </ul>
+  </nav>
+</div>
+
+<!-- JavaScript -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    let result = [];
+    let temp = [];
+    const dict = {{ entities | tojson | safe }};
+    const itemsPerPage = 50; // Number of items per page
+
+    const catalogue = document.getElementById("catalogue");
+    const paginationContainer = document.querySelector('.pagination');
+    const searchButton = document.getElementById("search-button");
+    const searchForm = document.getElementById("node-search-form");
+    const searchInput = document.getElementById("node-search");
+    const geneForm = document.getElementById("gene-form");
+    const geneInput = document.getElementById("gene_id");
+    const buttons = document.querySelectorAll('.button-group .btn');
+
+    /**
+     * Redirects to the gene form with the selected gene ID.
+     * @param {string} id - The gene ID to redirect.
+     */
+    function redirect(id) {
+      geneInput.value = id;
+      geneForm.submit();
+    }
+
+    /**
+     * Renders the table rows based on the current page.
+     * @param {number} page - The current page number.
+     */
+    function renderTable(page) {
+      const start = (page - 1) * itemsPerPage;
+      const end = start + itemsPerPage;
+      const paginatedItems = result.slice(start, end);
+
+      // Clear existing rows
+      catalogue.innerHTML = "";
+
+      // Populate table with paginated items
+      paginatedItems.forEach(item => {
+        const escapedItem = item.replace(/"/g, '&quot;');
+        const row = `
+          <tr>
+            <td>${item}</td>
+            <td><a href="#" class="redirect-link" data-id="${escapedItem}">Link to entity</a></td>
+          </tr>
+        `;
+        catalogue.innerHTML += row;
+      });
+
+      // Attach event listeners to the new links
+      const links = document.querySelectorAll('.redirect-link');
+      links.forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          const id = this.getAttribute('data-id');
+          redirect(id);
+        });
+      });
+    }
+
+    /**
+     * Renders the pagination controls.
+     * @param {number} currentPage - The current active page.
+     */
+    function renderPagination(currentPage) {
+      const totalPages = Math.ceil(result.length / itemsPerPage);
+      let paginationHTML = '';
+
+      // Determine the range of pages to display
+      const maxVisiblePages = 10;
+      let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+      let endPage = startPage + maxVisiblePages - 1;
+
+      if (endPage > totalPages) {
+        endPage = totalPages;
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+      }
+
+      // Generate page numbers
+      for (let i = startPage; i <= endPage; i++) {
+        paginationHTML += `
+          <li class="${i === currentPage ? 'current' : ''}" data-page="${i}" aria-label="Page ${i}">
+            ${i}
+          </li>
+        `;
+      }
+
+      paginationContainer.innerHTML = paginationHTML;
+
+      // Attach event listeners to pagination items
+      const paginationItems = paginationContainer.querySelectorAll('li');
+      paginationItems.forEach(item => {
+        item.addEventListener('click', function() {
+          const selectedPage = parseInt(this.getAttribute('data-page'));
+          if (selectedPage !== currentPage) {
+            renderTable(selectedPage);
+            renderPagination(selectedPage);
+          }
+        });
+      });
+    }
+
+    /**
+     * Handles the display logic when a letter button is clicked.
+     * @param {HTMLElement} button - The button that was clicked.
+     */
+    function handleButtonClick(button) {
+      const key = button.getAttribute('data-key');
+      result = dict[key] || [];
+      temp = [...result]; // Clone the array for reset purposes
+
+      // Enable the search button
+      searchButton.disabled = false;
+
+      if (result.length > itemsPerPage) {
+        renderTable(1);
+        renderPagination(1);
+      } else {
+        // If items are less than or equal to itemsPerPage, display all without pagination
+        renderTable(1);
+        paginationContainer.innerHTML = '';
+      }
+    }
+
+    /**
+     * Resets the table and pagination to the original state.
+     */
+    function resetDisplay() {
+      result = [...temp];
+      searchButton.innerHTML = "Submit";
+      searchInput.value = "";
+
+      if (result.length > itemsPerPage) {
+        renderTable(1);
+        renderPagination(1);
+      } else {
+        renderTable(1);
+        paginationContainer.innerHTML = '';
+      }
+    }
+
+    /**
+     * Filters the result based on the search term.
+     * @param {string} term - The search term to filter by.
+     */
+    function performSearch(term) {
+      if (term.trim() === "") {
+        resetDisplay();
+        return;
+      }
+
+      const filtered = temp.filter(item => item.toLowerCase().includes(term.toLowerCase()));
+      result = filtered;
+
+      if (result.length > itemsPerPage) {
+        renderTable(1);
+        renderPagination(1);
+      } else {
+        renderTable(1);
+        paginationContainer.innerHTML = '';
+      }
+    }
+
+    /**
+     * Initializes event listeners for buttons and forms.
+     */
+    function initializeEventListeners() {
+      // Button group event listeners
+      buttons.forEach(button => {
+        button.addEventListener('click', function() {
+          // Remove 'active' class from all buttons
+          buttons.forEach(btn => btn.classList.remove('active'));
+          // Add 'active' class to the clicked button
+          this.classList.add('active');
+          // Handle content display
+          handleButtonClick(this);
+        });
+      });
+
+      // Search form event listener
+      searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const currentState = searchButton.innerHTML.toLowerCase();
+
+        if (currentState === "cancel") {
+          // Cancel search
+          resetDisplay();
+          searchButton.innerHTML = "Submit";
+        } else {
+          // Perform search
+          const searchTerm = searchInput.value;
+          if (searchTerm.trim() === "") return; // Do nothing if search is empty
+
+          searchButton.innerHTML = "Cancel";
+          performSearch(searchTerm);
+        }
+      });
+    }
+
+    /**
+     * Initializes the application.
+     */
+    function initialize() {
+      initializeEventListeners();
+    }
+
+    // Start the application
+    initialize();
+  });
+</script>
+{% endblock %}

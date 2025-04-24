@@ -1,0 +1,649 @@
+{% extends "base.html" %}
+
+{% block content %}
+<article class="grid-container">
+  <header class="grid-x align-center-middle" style="margin-top: 20px;">
+    <div class="cell medium-8 text-center">
+      <h1 class="primary-header">Preview Search Results</h1>
+    </div>
+  </header>
+
+  <main class="grid-x align-center-middle custom-main">
+    <div class="cell medium-10 medium-offset-1">
+      <div class="callout secondary text-center">
+        <h4>Query: <span class="query-term">{{ search_term }}</span></h4>
+        <h4>Search Type: 
+          <span class="query-type">
+            {% if search_type == "normal" %}
+              gene / word
+            {% else %}
+              {{ search_type }}
+            {% endif %}
+          </span>
+        </h4>
+      </div>
+
+      <!-- Search and filter controls -->
+      <div class="search-container" style="margin-bottom: 20px; display: flex; justify-content: space-between;">
+        <input
+          type="text"
+          id="entityNameSearchInput"
+          placeholder="Search Entity Name..."
+          class="search-bar"
+        >
+        <select id="entityTypeFilter" class="entity-type-filter">
+          <option value="">All Categories</option>
+        </select>
+      </div>
+
+      <!-- Total Node Count Display -->
+      <div id="totalNodeCountContainer" style="text-align: center; margin-bottom: 10px;">
+        <strong>Total Nodes Selected:</strong> <span id="totalNodeCount">0</span>
+      </div>
+
+      <!-- Information Text Container -->
+      <div class="callout info" style="margin-bottom: 20px;">
+        <span>
+          Total nodes here are calculated based on the number of unique nodes in each cluster. If multiple clusters share nodes, the final node count will be lower.
+        </span>
+      </div>
+
+      <!-- Warning Message -->
+      <div id="warningMessageContainer" style="text-align: center; margin-bottom: 20px; display: none;">
+        <span style="color: #e74c3c; font-weight: bold;">
+          Total nodes selected exceeded 8000. Please reduce your selection so that the graph can render.
+        </span>
+      </div>
+
+      <!-- Scrollable Results Table with a "Select" Column -->
+      <div class="scrollable-table-container">
+        <table class="hover stack text-center results-table" id="resultsTable">
+          <thead>
+            <tr>
+              <!-- "Select All" checkbox in the table header -->
+              <th>
+                <input type="checkbox" id="selectAllCheckbox">
+              </th>
+              <th>Entity Name</th>
+              <th onclick="sortTable(2)">Entity Type &#x25B2;&#x25BC;</th>
+              <th onclick="sortTable(3)">No. of Unique Nodes &#x25B2;&#x25BC;</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Rows will be rendered here by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Button to Navigate to Multi-Entity Results -->
+      <div style="text-align: center; margin-top: 20px; margin-bottom: 10px">
+        <button 
+          id="showSelectedButton"
+          style="background-color: #007BFF; color: #ffffff; border: none; padding: 10px 16px; border-radius: 4px; cursor: pointer;"
+          onclick="getSelectedEntities()"
+        >
+          Show Selected
+        </button>
+      </div>
+    </div>
+  </main>
+</article>
+
+<!-- =========================
+       CUSTOM STYLES
+========================= -->
+<style>
+  .primary-header {
+    font-size: 2.5rem;
+    color: #2c3e50;
+    font-weight: bold;
+    margin-bottom: 10px;
+  }
+  .query-term,
+  .query-type {
+    color: #333;
+    font-weight: bold;
+  }
+  .custom-main {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .search-bar {
+    width: 60%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-size: 1rem;
+  }
+  .entity-type-filter {
+    width: 30%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-left: 10px;
+    font-size: 1rem;
+  }
+  .results-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 20px 0;
+    font-size: 1rem;
+    border: 1px solid #ddd;
+  }
+  .results-table th {
+    background-color: #f4f4f4;
+    color: #333;
+    font-weight: bold;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid #ddd;
+  }
+  .results-table td {
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+    background-color: white;
+  }
+  .table-link {
+    color: #007BFF;
+    text-decoration: none;
+  }
+  .table-link:hover {
+    color: #0056b3;
+    text-decoration: none;
+  }
+  .callout.secondary {
+    background-color: #f8f8f8;
+    border-left: 5px solid #4CAF50;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+  }
+  .callout.info {
+    background-color: #e7f3fe;
+    border-left: 5px solid #2196F3;
+    padding: 15px 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+  }
+  .callout.info span {
+    font-size: 1rem;
+    color: #31708f;
+  }
+  .highlight {
+    background-color: yellow;
+    font-weight: bold;
+  }
+  #totalNodeCountContainer {
+    font-size: 1.2rem;
+  }
+  #totalNodeCount {
+    color: #2c3e50;
+  }
+  #warningMessageContainer {
+    font-size: 1.2rem;
+  }
+  .scrollable-table-container {
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+  }
+  .scrollable-table-container thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f4f4f4;
+    z-index: 1;
+  }
+</style>
+
+<!-- =========================
+       JAVASCRIPT
+========================= -->
+<script>
+  // Global variables
+  const search_type = "{{ search_type }}";
+  const search_term = "{{ search_term }}";
+  const unique_id = "{{ unique_id }}";
+  let allRowsData = [];      // All result items (from preview_results)
+  let filteredRowsData = []; // Filtered items based on search
+  let selectedEntities = new Set();
+  let totalNodes = 0; // Total nodes selected
+
+  // Variables to track current sorting state
+  let currentSortCol = null;
+  let currentSortDir = 1; // 1 for ascending, -1 for descending
+
+  // Category mapping (unchanged)
+  const categoryMap = {
+    "gene identifier":["gene identifier"],
+    "gene/protein": [
+      "gene", "protein", "mutant", "protein complex", "enzyme",
+      "protein domain", "genetic element", "gene family", "protein family",
+      "protein structure", "peptide", "protein motif", "enzyme activity",
+      "protein region", "gene feature", "gene region", "gene structure",
+      "protein feature", "transcription factor", "gene cluster", 
+      "gene group", "promoter", "subunit", "transcript", "gene element",
+      "allele", "protein sequence", "protein modification",
+      "post-translational modification", "genetic locus", "protein subunit",
+      "genes", "qtl", "protein function", "amino acid residue",
+      "histone modification", "protein fragment", "receptor", "genetic event",
+      "protein kinase", "protein class", "protein group", "gene product",
+      "antibody", "proteins", "protein interaction", "gene module"
+    ],
+    "phenotype": ["phenotype"],
+    "cell/organ/organism": [
+      "organism", "organ", "subcellular compartment", "tissue", "cell type",
+      "organelle", "virus", "organelles", "cell structure", "plant",
+      "organism part"
+    ],
+    "chemical": [
+      "metabolite", "molecule", "compound", "chemical", "hormone",
+      "phytohormone", "polysaccharide", "material", "polymer",
+      "chemical structure", "biopolymer", "chemical compound",
+      "plant hormone", "chemical group"
+    ],
+    "treatment": [
+      "treatment", "environment", "condition", "time", "environmental factor",
+      "disease", "developmental stage", "time point", "stress",
+      "geographic location", "abiotic stress", "time period"
+    ],
+    "method": [
+      "method", "technique", "tool", "database", "software", "dataset",
+      "concept", "study", "description", "model", "modification", "location",
+      "author", "measurement", "experiment", "researcher", "mechanism",
+      "system", "feature", "parameter", "algorithm", "event", "reaction",
+      "resource", "interaction", "device", "metric", "technology", "network",
+      "construct", "vector", "category", "data", "research",
+      "geographical location", "document", "analysis", "person", "project",
+      "research field", "researchers", "gene network", "relationship"
+    ],
+    "genomic/transcriptomic feature": [
+      "genomic region", "genome", "amino acid", "genomic feature",
+      "dna sequence", "rna", "sequence", "mutation", "chromosome",
+      "gene expression", "genetic material", "genotype", "genomic element",
+      "genetic marker", "epigenetic mark", "genetic variation",
+      "regulatory element", "epigenetic modification", "dna element",
+      "mirna", "genomic location", "subfamily", "dna", "activity",
+      "genetic feature", "sequence motif", "genetic variant", "motif", "mrna",
+      "residue", "region", "genomic sequence", "cis-element", "clade", "accession",
+      "plasmid", "genomic data", "cultivar", "genomic event", "genomic resource",
+      "ecotype", "marker", "lncrna", "genetic construct", "sequence feature",
+      "genus", "genetic concept"
+    ],
+    "biological process": [
+      "metabolic pathway", "function", "pathway", "signaling pathway",
+      "metabolic process", "cell process", "biochemical process",
+      "cellular process", "molecular function", "signalling pathway",
+      "genetic process", "biological pathway", "process", "biological process"
+    ]
+  };
+
+  // Debounce utility to reduce the frequency of calls (for filtering)
+  function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+
+  // On DOMContentLoaded, initialize the page
+  document.addEventListener("DOMContentLoaded", () => {
+    // Populate the entity type dropdown
+    const dropdown = document.getElementById("entityTypeFilter");
+    Object.keys(categoryMap).forEach(category => {
+      const option = document.createElement("option");
+      option.value = category;
+      option.textContent = category.charAt(0).toUpperCase() + category.slice(1);
+      dropdown.appendChild(option);
+    });
+    // Add "Others" option
+    const othersOption = document.createElement("option");
+    othersOption.value = "others";
+    othersOption.textContent = "Others";
+    dropdown.appendChild(othersOption);
+
+    // Set up event listeners for filtering (debounced)
+    const nameInput = document.getElementById('entityNameSearchInput');
+    nameInput.addEventListener('keyup', debounce(applyFilterAndRender, 300));
+    dropdown.addEventListener('change', applyFilterAndRender);
+
+    // Set up the "Select All" checkbox listener
+    document.getElementById('selectAllCheckbox').addEventListener('click', toggleSelectAll);
+
+    // Load data: use cache if available; otherwise use server data.
+    const cachedData = getCachedSearch(search_term, search_type);
+    if (cachedData) {
+      console.log("Loaded search results from cache.");
+      allRowsData = cachedData.preview_results;
+      applyFilterAndRender();
+    } else {
+      console.log("Using server-provided search results.");
+      allRowsData = {{ preview_results | tojson }};
+      applyFilterAndRender();
+      // Cache the search results after rendering.
+      cacheSearchResults(search_term, search_type, {
+        preview_results: allRowsData,
+        unique_id: unique_id
+      });
+    }
+  });
+
+  // =========================
+  // CLIENT-SIDE CACHING FUNCTIONS
+  // =========================
+  function getCachedSearch(term, type) {
+    const cacheKey = `search_${type}_${term}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) return null;
+    try {
+      const parsedCache = JSON.parse(cached);
+      const currentTime = new Date().getTime();
+      const cacheAge = (currentTime - parsedCache.timestamp) / (1000 * 60 * 60); // hours
+      if (cacheAge > 24) {
+        localStorage.removeItem(cacheKey);
+        return null;
+      }
+      return parsedCache.data;
+    } catch (e) {
+      console.error("Error parsing cached data:", e);
+      localStorage.removeItem(cacheKey);
+      return null;
+    }
+  }
+
+  function cacheSearchResults(term, type, data) {
+    const cacheKey = `search_${type}_${term}`;
+    const timestamp = new Date().getTime();
+    const cacheData = { data, timestamp };
+    try {
+      localStorage.setItem(cacheKey, JSON.stringify(cacheData));
+      console.log("Search results cached successfully.");
+    } catch (e) {
+      console.warn("Failed to cache search results:", e);
+    }
+  }
+
+  // =========================
+  // FILTERING
+  // =========================
+
+  // Filter the data based on search input and dropdown, then render all rows.
+  function applyFilterAndRender() {
+    const searchValue = document.getElementById('entityNameSearchInput').value.toLowerCase();
+    const typeFilter = document.getElementById('entityTypeFilter').value.toLowerCase();
+
+    console.log("Filtering with search term:", searchValue);
+
+    filteredRowsData = allRowsData.filter(item => {
+      let entity, entity_type;
+      if (Array.isArray(item)) {
+        [entity, entity_type] = item;
+      } else {
+        entity = item.entity;
+        entity_type = item.entity_type;
+      }
+      const nameMatch = entity.toLowerCase().includes(searchValue);
+
+      // Determine if the entity type is "others"
+      let isOther = true;
+      for (const category in categoryMap) {
+        if (categoryMap[category].includes(entity_type.toLowerCase())) {
+          isOther = false;
+          break;
+        }
+      }
+
+      let categoryMatch = false;
+      if (typeFilter === '') {
+        categoryMatch = true;
+      } else if (typeFilter === 'others') {
+        categoryMatch = isOther;
+      } else {
+        const categoryTerms = categoryMap[typeFilter] || [];
+        categoryMatch = categoryTerms.includes(entity_type.toLowerCase());
+      }
+      return nameMatch && categoryMatch;
+    });
+
+    console.log("Filtered rows count:", filteredRowsData.length);
+    renderPage();
+  }
+
+  // =========================
+  // RENDERING (No Pagination)
+  // =========================
+
+  // Render all filtered rows.
+  function renderPage() {
+    const tbody = document.querySelector("#resultsTable tbody");
+    tbody.innerHTML = ""; // Clear previous rows
+    const fragment = document.createDocumentFragment();
+
+    filteredRowsData.forEach(item => {
+      let entity, entity_type, edge_number, network_count;
+      if (Array.isArray(item)) {
+        [entity, entity_type, edge_number, network_count] = item;
+      } else {
+        entity = item.entity;
+        entity_type = item.entity_type;
+        edge_number = item.edge_number;
+        network_count = item.network_count;
+      }
+
+      const row = document.createElement('tr');
+      row.dataset.entity = entity;
+      row.dataset.entityType = entity_type;
+      row.dataset.networkCount = network_count;
+
+      // Checkbox cell
+      const checkboxCell = document.createElement('td');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.classList.add('entity-checkbox');
+      checkbox.value = `${entity}|${entity_type}`;
+      checkbox.addEventListener('change', updateTotalNodeCount);
+      checkboxCell.appendChild(checkbox);
+      row.appendChild(checkboxCell);
+
+      // Entity Name with link and highlight (if search term is non-empty)
+      const nameCell = document.createElement('td');
+      nameCell.classList.add('entity-name');
+      const link = document.createElement('a');
+      link.href = `/${search_type === 'non-alphanumeric' ? 'non_alpha' : search_type}/${encodeURIComponent(entity)}/results/${entity_type}?uid=${unique_id}`;      link.classList.add('table-link');
+      if (document.getElementById('entityNameSearchInput').value &&
+          entity.toLowerCase().includes(document.getElementById('entityNameSearchInput').value.toLowerCase())) {
+        const regex = new RegExp(`(${escapeRegExp(document.getElementById('entityNameSearchInput').value)})`, 'gi');
+        link.innerHTML = entity.replace(regex, '<span class="highlight">$1</span>');
+      } else {
+        link.textContent = entity;
+      }
+      link.dataset.originalText = entity;
+      nameCell.appendChild(link);
+      row.appendChild(nameCell);
+
+      // Entity Type
+      const typeCell = document.createElement('td');
+      typeCell.classList.add('entity-type');
+      typeCell.textContent = entity_type;
+      row.appendChild(typeCell);
+
+      // Network Count
+      const networkCell = document.createElement('td');
+      const strong = document.createElement('strong');
+      strong.textContent = network_count;
+      networkCell.appendChild(strong);
+      row.appendChild(networkCell);
+
+      fragment.appendChild(row);
+    });
+
+    tbody.appendChild(fragment);
+    updateTotalNodeCount();
+    updateSelectAllCheckbox();
+  }
+
+  // =========================
+  // SELECT ALL FUNCTIONS
+  // =========================
+  function toggleSelectAll(eventOrCheckbox) {
+    const checkbox = eventOrCheckbox.target ? eventOrCheckbox.target : eventOrCheckbox;
+    const tbody = document.querySelector("#resultsTable tbody");
+    const visibleCheckboxes = tbody.querySelectorAll(".entity-checkbox");
+    if (checkbox.checked) {
+      visibleCheckboxes.forEach(cb => {
+        cb.checked = true;
+        selectedEntities.add(cb.value);
+      });
+    } else {
+      visibleCheckboxes.forEach(cb => {
+        cb.checked = false;
+        selectedEntities.delete(cb.value);
+      });
+    }
+    updateTotalNodeCount();
+  }
+
+  function updateSelectAllCheckbox() {
+    const tbody = document.querySelector("#resultsTable tbody");
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    const visibleCheckboxes = tbody.querySelectorAll(".entity-checkbox");
+    let checkedCount = 0;
+    visibleCheckboxes.forEach(cb => {
+      if (cb.checked) checkedCount++;
+    });
+    selectAllCheckbox.checked = (checkedCount === visibleCheckboxes.length && visibleCheckboxes.length > 0);
+  }
+
+  // =========================
+  // TOTAL NODE COUNT
+  // =========================
+  function updateTotalNodeCount() {
+    totalNodes = 0;
+    selectedEntities.clear();
+    document.querySelectorAll(".entity-checkbox:checked").forEach(checkbox => {
+      const entityRow = checkbox.closest("tr");
+      if (entityRow) {
+        const nodeCountElement = entityRow.querySelector("td:nth-child(4) strong");
+        if (nodeCountElement) {
+          const nodeCount = parseFloat(nodeCountElement.textContent);
+          if (!isNaN(nodeCount)) {
+            totalNodes += nodeCount;
+            selectedEntities.add(checkbox.value);
+          }
+        }
+      }
+    });
+    document.getElementById("totalNodeCount").textContent = totalNodes;
+    const warningContainer = document.getElementById("warningMessageContainer");
+    const showSelectedButton = document.getElementById("showSelectedButton");
+    if (totalNodes > 8000) {
+      warningContainer.style.display = "block";
+      showSelectedButton.disabled = true;
+    } else {
+      warningContainer.style.display = "none";
+      showSelectedButton.disabled = false;
+    }
+  }
+
+  // =========================
+  // "Show Selected" via POST
+  // =========================
+  function getSelectedEntities() {
+    if (selectedEntities.size === 0) {
+      alert("No entities selected.");
+      return;
+    }
+    if (totalNodes > 8000) {
+      alert("Total nodes selected exceeded 8000. Please reduce your selection so that the graph can render.");
+      return;
+    }
+    const selectedArray = Array.from(selectedEntities);
+    const pathSegment = (search_type === 'non-alphanumeric') ? 'non_alpha' : search_type;
+    fetch(`/${pathSegment}/${encodeURIComponent(search_term)}_multi/results?uid=${encodeURIComponent(unique_id)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ selected_entities: selectedArray, search_term: search_term })
+    })
+    .then(response => {
+      if (response.redirected) {
+        window.location.href = response.url;
+      } else {
+        return response.text().then(text => console.log('Response:', text));
+      }
+    })
+    .catch(err => console.error('Error in POST request:', err));
+  }
+
+  // =========================
+  // SORT FUNCTION WITH TOGGLE
+  // =========================
+  function sortTable(colIndex) {
+    // Toggle sort direction if same column; otherwise default to ascending.
+    if (currentSortCol === colIndex) {
+      currentSortDir = -currentSortDir;
+    } else {
+      currentSortCol = colIndex;
+      currentSortDir = 1;
+    }
+    // Sort the master data array (allRowsData)
+    allRowsData.sort((a, b) => {
+      let valueA, valueB;
+      if (Array.isArray(a)) {
+        // For array data:
+        // [ entity, entity_type, edge_number, network_count ]
+        // Our table header calls:
+        // - sortTable(2) for Entity Type → we want to sort by index 1.
+        // - sortTable(3) for Unique Nodes → sort by index 3.
+        if (colIndex === 2) {
+          // Entity Type: use index 1
+          valueA = a[1].toString();
+          valueB = b[1].toString();
+        } else if (colIndex === 3) {
+          valueA = parseFloat(a[3]) || 0;
+          valueB = parseFloat(b[3]) || 0;
+        } else {
+          // For Entity Name (if sorted) or others, use the given index.
+          valueA = a[colIndex].toString();
+          valueB = b[colIndex].toString();
+        }
+      } else {
+        // For object data, use keys:
+        // keys = ['entity', 'entity_type', 'edge_number', 'network_count']
+        // For colIndex 2 (Entity Type) use key 'entity_type'
+        const keys = ['entity', 'entity_type', 'edge_number', 'network_count'];
+        if (colIndex === 2) {
+          valueA = a.entity_type?.toString() || '';
+          valueB = b.entity_type?.toString() || '';
+        } else if (colIndex === 3) {
+          valueA = parseFloat(a.network_count) || 0;
+          valueB = parseFloat(b.network_count) || 0;
+        } else {
+          valueA = a[keys[colIndex]]?.toString() || '';
+          valueB = b[keys[colIndex]]?.toString() || '';
+        }
+      }
+      // Perform sort:
+      if (colIndex === 3) {
+        // Numeric sort for Unique Nodes.
+        return currentSortDir * (valueA - valueB);
+      } else {
+        // For text columns (like Entity Type), use localeCompare.
+        return currentSortDir * valueA.localeCompare(valueB, undefined, { sensitivity: 'base' });
+      }
+    });
+    // After sorting, reapply filtering and render.
+    applyFilterAndRender();
+  }
+
+  // Utility: escape regex special characters.
+  function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+</script>
+{% endblock %}

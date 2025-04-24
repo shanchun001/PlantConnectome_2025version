@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid-container">
+  <h2>Downloads</h2>
+  <p>Here you can download key datasets and resources from the PlantConnectome database.</p>
+
+  <!-- Full Knowledge Graph -->
+  <div class="download-card">
+    <h4>Full Knowledge Graph</h4>
+    <p>Knowledge graph used to construct the Connectome.</p>
+    <a href="https://figshare.com/ndownloader/files/53851253" class="button" download>Download file</a>
+
+    {% if previews["KG_PlantConnectome_20250421.csv"] %}
+    <div class="preview-section">
+      <h5>Preview (first 10 rows):</h5>
+      {{ previews["KG_PlantConnectome_20250421.csv"] | safe }}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- AGI–AGI Entity Pairs -->
+  <div class="download-card">
+    <h4>AGI–AGI Entity Pairs (with TF annotation)</h4>
+    <p>Knowledge graph containing only entities with Arabidopsis Gene Identifiers. Transcription factors are indicated.</p>
+    <a href="https://figshare.com/ndownloader/files/53851254" class="button" download>Download file</a>
+
+    {% if previews["connectome_agi_pairs_pmid_edge_all_columns_TF.csv"] %}
+    <div class="preview-section">
+      <h5>Preview (first 10 rows):</h5>
+      {{ previews["connectome_agi_pairs_pmid_edge_all_columns_TF.csv"] | safe }}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.download-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+}
+.download-card h4 { margin-top: 0; }
+.button {
+  margin-top: 0.5rem;
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  font-weight: bold;
+  display: inline-block;
+}
+
+/* make the preview box scrollable */
+.preview-section {
+  margin-top: 1rem;
+  max-height: 300px;     /* adjust this height as needed */
+  overflow-y: auto;      /* vertical scroll when content overflows */
+  overflow-x: auto;      /* keep horizontal scroll too */
+  border: 1px solid #eee;
+  padding: 0.5rem;
+  background: #fafafa;
+}
+
+.preview-section table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+.preview-section th,
+.preview-section td {
+  border: 1px solid #ccc;
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 0.85rem;
+}
+.preview-section th {
+  background-color: #f5f5f5;
+}
+</style>
+{% endblock %}

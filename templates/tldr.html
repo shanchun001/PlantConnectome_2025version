@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block dependencies %}
+{{ super() }}
+<script src = "{{ url_for('static', filename = 'js/tldr.js') }}" defer> </script>
+<link rel = "stylesheet" type = "text/css" href = "{{ url_for('static', filename = 'css/tldr.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="chat-container">
+      <h1>TL;DR</h1>
+      <h3 style="font-style: italic; text-align: center;">Tool for Literature;Driven Research</h3>
+      <p>Ask me anything related to plants using either a gene, molecule, compartment, stress, cell type, organ, or other related terms.</p>
+      <form id="chat-form">
+        <input
+          type="text"
+          id="user-input"
+          name="user_input"
+          placeholder="CESA1"
+        />
+        <button type="submit" id="submitBtn">Search</button>
+      </form>
+      <div id="loading" style="display: none;">Loading...</div>
+      <div id="warning" style="display: none;"></div>
+      <div id="result" style="white-space: pre-wrap;"></div>
+    </div>
+{% endblock %}

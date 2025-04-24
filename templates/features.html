@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block dependencies %}
+{{ super() }}
+
+<!-- Dependencies for the piechart -->
+<script src = "https://cdn.jsdelivr.net/npm/chart.js"> </script>
+
+<!-- CSS for this page -->
+<link rel = "stylesheet" style = "text/css" href = "{{ url_for('static', filename = 'css/features.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class = "grid-container">
+    <br>
+    <div class = 'text-center'>
+        <br>
+        <h1> Database Features </h1>
+        <br>
+        <p> Learn more about PlantConnectome and its novel utilities. </p>
+        <br>
+    </div>
+    <hr>
+    <h2> Composition of PlantConnectome </h2>
+    <br>
+    <div class = 'grid-x grid-margin-x'>
+        <div class = 'cell medium-6'>
+            <br>
+            PlantConnectome was constructed by surveying numerous journals (shown in the pie chart to the right) using GPT. 
+            <br> <br>
+            Unifying <strong>71,136</strong> plant studies, PlantConnectome can be used to study genes, metabolites, tissues, and other biological entities, illuminating <strong>4,819,469</strong> relationships altogether. 
+        </div>
+        <div class = 'cell medium-6'>
+            <canvas id = "piechart" width = '550' height = '200'> </canvas>
+            <script> {{ piechart_code | safe }} </script>
+        </div>
+    </div>
+    <br>
+    <hr>
+    <div class = 'text-center'>
+        <h2> Searching PlantConnectome </h2>
+        <p> PlantConnectome offers three search options: </p>
+        <br>
+    </div>
+    <div class = 'grid-x grid-margin-x medium-up-3'>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> Term Searches </strong>
+                </div>
+                <div class = 'card-section' style= "text-align: left;">
+                    <p>
+                        Search by keywords and gene IDs:
+                        <ul style= "text-align: left;">
+                            <li> CESA1 </li>
+                            <li> AT4G32410 </li>
+                            <li> Proline </li>
+                        </ul>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> Author Search </strong>
+                </div>
+                <div class = 'card-section' style= "text-align: center;">
+                    <p>
+                        Finds and displays publications by author.
+                    </p>
+                </div>            
+            </div>
+        </div>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> Pubmed ID Search </strong>
+                </div>
+                <div class = 'card-section' style= "text-align: center;">
+                    Displays publications of interest by Pubmed ID.
+                </div>            
+            </div>
+        </div>
+    </div>
+    <br>
+    <hr>
+    <div class = 'text-center'>
+        <h2> Search Results </h2>
+        <p> All search queries with hits return six results: </p>
+        <br>
+    </div>
+    <div class = 'grid-x grid-margin-x medium-up-3'>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> Size of Network and Number of Papers  </strong>
+                </div>
+                <img src = "{{ url_for('static', filename = '/Size_of_Network_and_Number_of_Papers.png') }}" alt = "A sample entity-relationship graph">
+                <div class = 'card-section' style= "text-align: left;">
+                    <p>
+                        The number of abstracts and full-texts in the database containing the search query is 
+                        shown for reference.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> GPT-Based Extracted and Generated Entity Definitions </strong>
+                </div>
+                <img src = "{{ url_for('static', filename = '/definitions.png') }}" alt = "A sample entity-relationship graph">
+                <div class = 'card-section' style= "text-align: left;">
+                    <p>
+                        A collection of functions associated with the search query is displayed.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> Edge Basis and Species </strong>
+                </div>
+                <img src = "{{ url_for('static', filename = '/Edge_Basis2.png') }}" alt = "A sample entity-relationship graph">
+                <div class = 'card-section' style= "text-align: left;">
+                    <p>
+                        Upon clicking an edge, the experimental evidences and species for a particular relationship is displayed.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> Entity Relationship Graph </strong>
+                </div>
+                <img src = "{{ url_for('static', filename = '/Network_graph.png') }}" alt = "network graph">
+                <div class = 'card-section' style= "text-align: left;">
+                    <p>
+                        This directed graph summarizes the various entities in the database sharing relationships with the search query. Each node (i.e., colored shapes) and edge (i.e., colored arrows) on the graph represents an entity and a relationship shared between two entities, respectively. The colored shapes and colored arrows represents different entity types and relationship types.
+                        <br> <br>
+                        This graph is also interactive; the user can alter its appearance via several options and filter the graph based on entity type and relationship type.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> Text Summary </strong>
+                </div>
+                <img src = '../static/text_summary2.png' alt = "Text-summary of search results">
+                <div class = 'card-section' style= "text-align: left;">
+                    <p>
+                        A text summary of the entity-relationship graph is shown for reference and the corresponding PMID for each relationship is stated. Text summary changes dynamically with visibility of the graph.
+                    </p>
+                </div>            
+            </div>
+        </div>
+        <div class = 'cell'>
+            <div class = 'card'>
+                <div class = 'card-divider' style="display: flex; justify-content: center;">
+                    <strong> Entity Relationship Table </strong>
+                </div>
+                <img src = '../static/table_summary2.png' alt = "A sample entity-relationship graph">
+                <div class = 'card-section' style= "text-align: left;">
+                    A table summary of the node-edge interactions in the Knowledge Network graph is also shown, which is fully sortable, downloadable as a TSV file, and has hyperlinked Pubmed IDs.
+                </div>            
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

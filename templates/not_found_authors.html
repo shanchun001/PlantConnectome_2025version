@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1em;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+      }
+      .button.primary {
+        background-color: #007BFF;
+        color: #fff;
+      }
+      .button.primary:hover {
+        background-color: #0056b3;
+      }
+</style>
+
+<div class="grid-container fluid">
+  <br>
+  <h2>No hits were found using the query: <strong>{{ search_term }}</strong></h2>
+  <p>Please check your spelling and ensure you’ve entered the author’s last name or their last name followed by initials.</p>
+
+  <button class="button" onclick="window.location.href='{{ url_for('index') }}'">
+    Go Back
+  </button>
+</div>
+{% endblock %}
