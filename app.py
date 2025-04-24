@@ -769,7 +769,7 @@ def features():
 @app.route("/download.html")
 def download_page():
     # Directory where your 10‑row preview CSVs live
-    preview_dir = "/home/shanchun123/newplantconnectome/connectome_files/previews"
+    preview_dir = "connectome_files/previews"
     print(f"[DEBUG] Download route called. preview_dir = {preview_dir}")
 
     def load_preview(filename):

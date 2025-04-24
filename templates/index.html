@@ -31,7 +31,7 @@
   <div class="grid-container">
 
     {# ---------- NEW FULL-WIDTH CENTERED BAR ---------- #}
-    <div class="text-center" style="margin-bottom:0.3rem;">
+    <div class="text-center" style="margin-bottom:0rem;">
       <h1 class="image-heading" style="margin:10px 0 5px 0;">
         <img src="../static/plantC_title.png"
              alt="PlantConnectome" id="plantC-title">
@@ -48,21 +48,21 @@
       <!-- Intro column -->
       <div class="cell small-12 medium-6">
         <p class="lead">
-          The product of processing <strong class="count">71136</strong> publications with GPT's assistance, PlantConnectome is a powerful resource providing insights into <strong class="count">4721399</strong> relationships involving genes, molecules, compartments, stresses, organs, and other plant entities. Please click on nodes and edges to view supporting PubMed IDs and verify whether relationships are reported in the current study or referenced from prior work.
+          The product of processing <strong class="count">71136</strong> publications with GPT's assistance, PlantConnectome is a powerful resource providing insights into <strong class="count">4721071</strong> relationships involving genes, molecules, compartments, stresses, organs, and other plant entities. Please click on nodes and edges to view supporting PubMed IDs and verify whether relationships are reported in the current study or referenced from prior work.
         </p>
       </div>
 
       <!-- Preview column -->
       <div class="cell small-12 medium-6" style="padding:0">
         <div id="cy-wrapper"><div id="cy"></div></div>
-        <p class="figure-legend" style="font-size:0.9rem;color:#7f8c8d;margin:4px 0 0;">
+        <p class="figure-legend" style="font-size:0.9rem;color:#7f8c8d;margin:0px 0 0;">
           An example of PSAD1-1 knowledge graph
         </p>
       </div>
     </div>
 
     {# ---------- SEARCH SECTION ---------- #}
-    <div class="grid-x grid-margin-x" style="margin-top:0.5rem;">
+    <div class="grid-x grid-margin-x" style="margin-top:0rem;">
       <!-- Search forms -->
       <div class="cell medium-6 small-order-2 medium-order-1">
         <h3>
@@ -268,7 +268,7 @@
       layout: {
         name: 'cose',
         animate: true,
-        padding: 10,
+        padding: 5,
         nodeRepulsion: 1000000,  // 1 million = stronger push away
         idealEdgeLength: 75,        // 👈 optional, edge length
         animationDuration: 3000,

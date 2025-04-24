@@ -208,7 +208,7 @@ const change_help_text = (button, text) => {
               </ul>
               <p>
       
-            <p>You can search for <em>Arabidopsis thaliana</em> genes by entering an AGI number of an alias. For example, 'CESA1' would return:</p>
+            <p>You can search for <em>Arabidopsis thaliana</em> genes by entering an AGI number or an alias. For example, 'CESA1' would return:</p>
             <ul style="color: green;">
               <li>(ATCESA1, CESA1, RSW1, AT4G32410, ANY1)</li>
               <li>(ATCESA1, CESA1, RSW1, AT4G32410, ANY1) mutant</li>

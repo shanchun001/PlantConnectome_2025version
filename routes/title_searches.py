@@ -38,7 +38,6 @@ def title_search(query):
     except Exception as e:
         # on failure, fall back to empty titles
         title_map = {pmid: "Title fetch error" for pmid in pmids}
-        app.logger.warning(f"Entrez title fetch failed: {e}")
     all_dic_collection = db["all_dic"]
     forSending = []
     elements = []

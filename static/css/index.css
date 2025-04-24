@@ -5,7 +5,10 @@
 .callout.large {
   padding-bottom: 5px !important;  /* was 10px or more */
 }
-
+h3 small {
+  font-size: 0.6em;   /* or whatever size works for you */
+  color: #666;        /* optional—make it a bit lighter if you like */
+}
 .image-heading {
   text-align: center;
   position: relative;

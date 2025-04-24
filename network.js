@@ -163,8 +163,7 @@
       'time period'
     ]
   };
-  console.log(filteredNodes);
-  console.log(filteredEdges);
+
   /**
    * Initialize Cytoscape
    */

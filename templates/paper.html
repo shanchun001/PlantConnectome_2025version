@@ -922,7 +922,7 @@
 
       <label for="prompt_type">Prompt Type Template:</label>
       <select id="prompt_type">
-        <option value="Author">Author</option>
+        <option value="Paper">Paper</option>
       </select>
 
       <script>
@@ -1004,7 +1004,7 @@
             };
           
             // Default category
-            let detectedCategory = 'Author';
+            let detectedCategory = 'Paper';
           
             // Check which category the extracted entity type belongs to
             Object.entries(categoryMap).forEach(([category, keywords]) => {
@@ -1027,47 +1027,61 @@
           
             // Define placeholders for each prompt type
             const placeholders = {
-              'Author': `Generate a structured, comprehensive scientific review based on the knowledge graph summary constructed from ${formattedQuery}’s publications. Every statement must be directly linked to the input data using only the PMIDs provided in the input. **Do not generate or infer additional PMIDs** beyond those explicitly present in the input.
+              'Paper': `Generate a structured, comprehensive manuscript summary based on the provided document. Every statement must be directly linked to specific content from the manuscript with appropriate page citations. Do not generate or infer information beyond what is explicitly present in the input manuscript.
+Summary Structure
+Start with manuscript title. Each section should be thoroughly developed with at least 1000 words to ensure comprehensive coverage while minimizing redundancy, and ensure that every significant detail from the manuscript is included and cited appropriately.
+1. Abstract and Background
+Summarize the major research themes, methodologies, and systems examined in the manuscript.
+Identify the core objectives of the work and explain its significance within the broader field.
+Present the central research question(s) or hypothesis and contextual background.
+Include page citations where relevant.
+2. Theoretical Framework and Literature Context
+Describe the conceptual foundations and theoretical models underpinning the research.
+Outline the intellectual traditions and scholarly conversations the manuscript engages with.
+Explain how the theoretical framework guides the research questions and methodological choices.
+Detail the literature context, including key debates, gaps, and contributions from previous work.
+Illustrate how the manuscript positions itself within the existing scholarly landscape.
+Cite specific pages or sections for each theoretical component or literature reference.
+3. Materials and Methods
+Provide a detailed account of the experimental, analytical, or theoretical methodologies employed.
+If applicable, describe data collection techniques, instruments, and protocols.
+Outline analytical methods, including statistical approaches, computational tools, and interpretive frameworks.
+Discuss sampling procedures, participant characteristics, or material selections where relevant.
+Explain how data was processed, validated, and analyzed to ensure reliability and validity.
+Include specific page citations for methodological details.
+4. Results and Key Findings
+Present the major outcomes and findings reported in the manuscript.
+Highlight novel discoveries and insights, particularly breakthrough concepts or paradigm shifts.
+Where applicable, discuss patterns, relationships, or empirical observations developed.
+Note statistical significance and strength of evidence for empirical claims.
+Describe important figures, tables, and visualizations that convey critical findings.
+Organize findings according to research questions or objectives where appropriate.
+Cite specific pages or sections for each major result.
+5. Discussion and Conclusions
+Situate the manuscript's findings within existing literature, highlighting how they build upon, challenge, or extend previous work.
+Discuss how the results relate to established theories, models, or frameworks in the field.
+Identify the theoretical and practical implications of the manuscript's findings.
+Consider how the manuscript addresses limitations in methodology, scope, or generalizability.
+Present author-suggested directions for future research and your assessment of promising avenues.
+Note gaps or questions that remain unaddressed.
+Include page citations for interpretations, implications, and limitations.
+Guidelines for Formatting:
+✅ Use specific page citations for all key information extracted from the manuscript.
+✅ Ensure each significant claim or finding is backed by direct reference to the manuscript content.
+✅ Maintain a formal, precise, and academically rigorous writing style. Avoid casual or speculative language.
+✅ Structure the output clearly with appropriate headings, subheadings, and paragraph breaks.
+✅ Distinguish clearly between the author's claims and your interpretations of the material.
+✅ For technical manuscripts, explain specialized terminology when first introduced.
 
-#### **Review Structure:**
-Each section should be at least 1,000 words to ensure exhaustive discussion while minimizing redundancy and ensure that every detail from the input, including all PMIDs, is included and cited appropriately at the end of the sentence.
+Final Review Checklist
+Before finalizing the summary, ensure:
 
-### **1. Introduction**
-- Provide an overview of ${formattedQuery}’s research focus, summarizing the major scientific themes, methodologies, and biological systems covered in their work.
-- Identify the core objectives of their research based on the knowledge graph and explain its significance within the broader scientific field.
-- Discuss historical context or background where relevant.
-- Include PMIDs where relevant.
-
-### **2. Key Findings and Relationships**
-- Describe the most significant relationships in the knowledge graph, detailing gene interactions, regulatory mechanisms, and functional annotations.
-- Highlight novel discoveries and biological insights, such as transcription factor-target interactions, signaling cascades, and epistatic relationships.
-- Where applicable, discuss co-expression patterns, genetic redundancies, or functional clustering observed.
-
-### **3. Methodological Approaches**
-- Provide a detailed account of the experimental and computational methodologies used in ${formattedQuery}’s research.
-- If applicable, describe wet-lab techniques (e.g., high-throughput sequencing, RNA-seq, proteomics, metabolomics).
-- Outline computational methods, including bioinformatics pipelines, machine learning models, statistical analyses, and knowledge graph construction approaches.
-- Discuss data sources used in the knowledge graph (e.g., gene expression databases, protein interaction networks, literature mining techniques).
-- Explain how data was curated, annotated, and processed to ensure reproducibility and accuracy.
-
-### **4. Comparative Analysis**
-- Compare ${formattedQuery}’s findings with existing literature, highlighting agreements, discrepancies, or novel contributions.
-- Discuss how the knowledge graph insights refine or challenge previous scientific knowledge.
-- Provide qualitative or quantitative comparisons, referencing existing models, experimental data, and large-scale databases.
-- If applicable, evaluate whether the findings confirm or refute known gene regulatory networks, pathways, or metabolic processes.
-
-### **5. Future Directions and Implications**
-- Identify promising avenues for future research based on the knowledge graph.
-- Discuss potential applications, including implications for biotechnology, medicine, synthetic biology, and plant sciences.
-- Highlight possible interdisciplinary applications (e.g., linking genetic regulation to agronomic traits, disease mechanisms, or bioengineering).
-- Consider emerging technologies (e.g., CRISPR, AI-driven bioinformatics, single-cell transcriptomics) that could enhance the research.
-- Discuss limitations of the current knowledge graph and propose refinements or expansions.
-
-### **Guidelines for Formatting:**
-✅ **Use only PMIDs from the input data**; do not generate or infer new ones.  
-✅ **Ensure each fact is backed by at least one PMID** and list multiple PMIDs where applicable.  
-✅ **Maintain a formal, precise, and publication-ready writing style.** Avoid casual or speculative language.  
-✅ **Output should be structured clearly** and formatted as an academic review.`};
+Every major claim or finding is supported by specific page citations from the manuscript
+All sections meet the minimum 1000-word requirement for comprehensive coverage
+The writing maintains academic rigor and precision appropriate for scholarly publication
+Technical terminology is accurately represented and explained where necessary
+The summary presents a cohesive narrative that captures the essence of the original manuscript
+Author contributions and perspectives are distinguished from your analytical commentary`};
           
             // Update the custom prompt text area with the appropriate placeholder
             function updatePromptText(selectedType) {
