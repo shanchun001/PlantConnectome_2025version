@@ -269,7 +269,7 @@
 {% block content %}
 <div class='grid-container align-center'>
   <h3 style="font-size: 20px;">
-    This page contains a catalog of all of the entities. Click on the letter key to view all relevant entities to conduct a search.
+    This page contains a catalog of all of the entities. Click on the letter key to view all relevant entities to conduct a search. If you are searching for a gene, please search using gene/word on the front page.
   </h3>
   
   <form action="{{ url_for('form', form_type='gene_id', search_type='exact') }}" method='POST' id='gene-form'>
