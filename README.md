@@ -70,3 +70,6 @@ The mongodb python client is currently connecting via "mongodb://localhost:27017
 ```
 python app.py
 ```
+
+### Colab code for manuscript
+Colab code for manuscript can be found at PlantConnectome_2025version/connectome_files/previews/Connectome2025_Figures.ipynb
