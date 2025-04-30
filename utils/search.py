@@ -507,11 +507,20 @@ def find_terms(my_search, genes, search_type):
         print("Substring search:", my_search)
         function_start_time = time.time()
 
-        # 1️⃣ Build the MongoDB substring‑excluding‑exact query
-        escaped_patterns = [re.escape(word) for word in my_search]
-        combined_or_regex  = "(" + "|".join(escaped_patterns) + ")"
-        combined_nor_regex = "(" + "|".join(escaped_patterns) + ")"
 
+        # Create individual regex conditions for each term
+        regex_conditions = []
+        for word in my_search:
+            escaped_word = re.escape(word)  # Escape special characters
+            regex_conditions.append({"entity1_disamb": {"$regex": escaped_word, "$options": "i"}})
+            regex_conditions.append({"entity2_disamb": {"$regex": escaped_word, "$options": "i"}})
+
+        # Final query: match if any field contains any of the substrings
+        query = {
+            "$or": regex_conditions
+        }
+        
+        '''
         query = {
             "$and": [
                 {   # any field contains one of the terms
@@ -528,7 +537,7 @@ def find_terms(my_search, genes, search_type):
                 }
             ]
         }
-
+        '''
         # Pull all matching docs at once
         result_list = list(genes.find(query))
         print("Number of hits:", len(result_list))
@@ -594,8 +603,9 @@ def find_terms(my_search, genes, search_type):
             ))
             # —— 5️⃣ Build preview entries using the original substring pattern —— #
             for word in my_search:
-                pattern = re.compile(rf"(?<![\w\s]){re.escape(word)}(?![\s])", re.IGNORECASE)
-                
+                #pattern = re.compile(rf"(?<![\w\s]){re.escape(word)}(?![\s])", re.IGNORECASE)
+                pattern = re.compile(re.escape(word), re.IGNORECASE)
+
 
                 # match raw string, but store under merged‐type key
                 if pattern.search(e1):

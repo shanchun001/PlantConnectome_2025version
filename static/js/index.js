@@ -247,9 +247,10 @@ const change_help_text = (button, text) => {
         case 'substring':
             help_text = `
             <p>
-                Finds all entities that contain the search query as a <b>substring</b>.  For instance, if "hair" is searched, this search will find the 
+                Finds all entities that contain the search query. For instance, if "hair" is searched, this search will find the 
                 following entities:
                 <ul style = 'color: green;'>
+                    <li> root hair </li>
                     <li> root hairs </li>
                     <li> hairy roots </li>
 
