@@ -878,9 +878,9 @@
     document.getElementById('validateEdge').addEventListener('click', () => {
       validateEdgeAPI(
         edge.data().pmid,
-        `${edge.data().originalsource2} [${edge.data().sourcetype2}]`,
+        `${edge.data().originalsource} [${edge.data().sourcetype}]`,
         edge.data().interaction,
-        `${edge.data().originaltarget2} [${edge.data().targettype2}]`
+        `${edge.data().originaltarget} [${edge.data().targettype}]`
       );
     });
   

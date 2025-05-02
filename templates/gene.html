@@ -927,24 +927,81 @@
         document.addEventListener("DOMContentLoaded", function () {
           // Function to extract entity types from brackets
           function extractEntityTypes(query) {
-            // 1️⃣ Try to pull out the bracketed content; if none, fall back to the whole string
-            const bracketMatch = query.match(/\[(.*?)\]/);
-            const content = bracketMatch ? bracketMatch[1] : query;
+            // 1️⃣ Find all bracketed contents; if none found, fall back to entire query
+            const bracketPattern = /\[(.*?)\]/g;
+            const matches = [];
+            let match;
           
-            // 2️⃣ Now split on commas and normalize
-            return content
+            while ((match = bracketPattern.exec(query)) !== null) {
+              // match[1] is the content inside brackets
+              matches.push(match[1]);
+            }
+          
+            // Use bracket contents if any, else use the whole query
+            const contentToSplit = matches.length > 0 ? matches.join(",") : query;
+          
+            // 2️⃣ Split on commas, normalize, and filter out empty terms
+            return contentToSplit
               .split(",")
               .map(term => term.trim().toLowerCase())
               .filter(term => term.length > 0);
           }
+          
       
           // Fetch the query term from backend
           var queryTerms = "{{ search_term }}";  // Example: "CESA [gene], XYZ [metabolite]"
+          
           var formattedQuery = queryTerms;
           var formattedQuery2 = extractEntityTypes(queryTerms);
+          //console.log('queryTerms', queryTerms);
+          //console.log('formattedQuery2', formattedQuery2);
+          function splitOutsideDelimiters(str) {
+            const parts = [];
+            let buf = "";
+            let parenDepth = 0;
+            let bracketDepth = 0;
+          
+            for (let i = 0; i < str.length; i++) {
+              const ch = str[i];
+          
+              if (ch === "(") {
+                parenDepth++;
+                buf += ch;
+              }
+              else if (ch === ")") {
+                parenDepth = Math.max(parenDepth - 1, 0);
+                buf += ch;
+              }
+              else if (ch === "[") {
+                bracketDepth++;
+                buf += ch;
+              }
+              else if (ch === "]") {
+                bracketDepth = Math.max(bracketDepth - 1, 0);
+                buf += ch;
+              }
+              else if (ch === "," && parenDepth === 0 && bracketDepth === 0) {
+                // split only when outside both () and []
+                parts.push(buf.trim());
+                buf = "";
+              }
+              else {
+                buf += ch;
+              }
+            }
+          
+            if (buf.length > 0) {
+              parts.push(buf.trim());
+            }
+          
+            return parts;
+          }
+          
+
       
           // Split the query into an array based on commas
-          var queryTermsArray = queryTerms.split(",");
+          var queryTermsArray = splitOutsideDelimiters(queryTerms);
+          //console.log('queryTermsArray', queryTermsArray);
       
           // If there are more than 5 terms, set formattedQuery to "multiple entities"
           if (queryTermsArray.length > 1) {
@@ -971,7 +1028,6 @@
               'polysaccharide', 'material', 'polymer', 'chemical structure', 'biopolymer',
               'chemical compound', 'plant hormone', 'chemical group'
             ],
-            'gene identifier': ['gene identifier'],
             'gene/protein': [
               'gene', 'protein', 'mutant', 'protein complex', 'enzyme', 'protein domain',
               'genetic element', 'gene family', 'protein family', 'protein structure', 'peptide',
@@ -1017,12 +1073,14 @@
           let detectedCategory = 'other';
       
           // — Replace your old Object.entries(...) block with this:
-
+          //console.log("Formatted Query2:", formattedQuery2);
           // 1. Make sure we have an array of terms
           const terms = Array.isArray(formattedQuery2)
             ? formattedQuery2
             : [formattedQuery2];
-
+          //console.log(formattedQuery2);
+          //console.log(terms);
+          //console.log(terms);
           // 2. Map each term to its category (or 'other' if no keyword match)
           const termCategories = terms.map(term => {
             for (const [category, keywords] of Object.entries(categoryMap)) {
@@ -1032,6 +1090,7 @@
             }
             return 'other';
           });
+          console.log(termCategories);
 
           // 3. Get the unique list of categories found
           const uniqueCategories = [...new Set(termCategories)];
