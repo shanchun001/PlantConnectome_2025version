@@ -15,7 +15,7 @@ catalogue_search = Blueprint('catalogue_search', __name__)
 @catalogue_search.route('/catalogue', methods = ['GET'])
 def catalogue():
 
-    cata = pickle.load(open('Entity_catalogue.pkl','rb'))
+    cata = pickle.load(open('Entity_catalogue2.pkl','rb'))
     #print("Header keys:", cata[0])
     #print("Entities dictionary:", cata[1])
 
